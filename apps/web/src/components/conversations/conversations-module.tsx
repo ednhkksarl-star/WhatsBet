@@ -117,33 +117,74 @@ export function ConversationsModule({ conversations, messages, selectedId }: Con
   const [feedback, setFeedback] = useState<string | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [liveConversations, setLiveConversations] = useState(conversations);
   const fetchedAvatars = useRef(new Set<string>());
+  const sinceRef = useRef(new Date(Date.now() - 10_000).toISOString());
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const selected = conversations.find((c) => c.id === selectedId);
+  const selected = liveConversations.find((c) => c.id === selectedId);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return conversations;
-    return conversations.filter(
+    if (!q) return liveConversations;
+    return liveConversations.filter(
       (c) =>
         c.phone.toLowerCase().includes(q) ||
         c.displayPhone.toLowerCase().includes(q) ||
         (c.name?.toLowerCase().includes(q) ?? false) ||
         (c.lastMessage?.toLowerCase().includes(q) ?? false)
     );
-  }, [conversations, search]);
+  }, [liveConversations, search]);
+
+  useEffect(() => {
+    setLiveConversations(conversations);
+  }, [conversations]);
 
   useEffect(() => {
     setLocalMessages(messages);
-  }, [messages]);
+    sinceRef.current = new Date(Date.now() - 10_000).toISOString();
+  }, [messages, selectedId]);
+
+  useEffect(() => {
+    if (tab !== "conversations") return;
+
+    const poll = async () => {
+      try {
+        const params = new URLSearchParams({ since: sinceRef.current });
+        if (selectedId) params.set("selectedId", selectedId);
+        const res = await fetch(`/api/conversations/feed?${params}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        sinceRef.current = data.serverTime ?? new Date().toISOString();
+        if (Array.isArray(data.conversations)) {
+          setLiveConversations(data.conversations);
+        }
+        if (Array.isArray(data.messages) && data.messages.length > 0) {
+          setLocalMessages((prev) => {
+            const byId = new Map(prev.map((m) => [m.id, m]));
+            for (const m of data.messages as ConversationMessage[]) {
+              byId.set(m.id, m);
+            }
+            return Array.from(byId.values());
+          });
+        }
+      } catch {
+        /* ignore poll errors */
+      }
+    };
+
+    poll();
+    const timer = setInterval(poll, 3000);
+    return () => clearInterval(timer);
+  }, [selectedId, tab]);
 
   useEffect(() => {
     const initial: Record<string, string | null> = {};
-    for (const c of conversations) {
+    for (const c of liveConversations) {
       if (c.profilePictureBase64) initial[c.id] = c.profilePictureBase64;
     }
     setAvatars(initial);
-  }, [conversations]);
+  }, [liveConversations]);
 
   useEffect(() => {
     if (!selectedId || avatars[selectedId] || fetchedAvatars.current.has(selectedId)) return;
@@ -209,6 +250,10 @@ export function ConversationsModule({ conversations, messages, selectedId }: Con
     [localMessages]
   );
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [sortedMessages.length]);
+
   const sendMessage = useCallback(async () => {
     if (!selectedId || !draft.trim() || sending) return;
     setSending(true);
@@ -237,7 +282,7 @@ export function ConversationsModule({ conversations, messages, selectedId }: Con
     if (!broadcastDraft.trim() || broadcasting) return;
     setPendingConfirm({
       title: "Diffuser le message",
-      description: `Ce message sera envoyé à ${conversations.length} joueur(s) ayant déjà contacté le bot via WhatsApp.`,
+      description: `Ce message sera envoyé à ${liveConversations.length} joueur(s) ayant déjà contacté le bot via WhatsApp.`,
       confirmLabel: "Envoyer à tous",
       variant: "primary",
       action: async () => {
@@ -261,7 +306,7 @@ export function ConversationsModule({ conversations, messages, selectedId }: Con
         }
       },
     });
-  }, [broadcastDraft, broadcasting, conversations.length, router]);
+  }, [broadcastDraft, broadcasting, liveConversations.length, router]);
 
   const deleteSelected = useCallback(() => {
     if (selectedIds.size === 0 || deleting) return;
@@ -367,7 +412,7 @@ export function ConversationsModule({ conversations, messages, selectedId }: Con
                 <div>
                   <h2 className="font-semibold text-white">Message à tous les joueurs</h2>
                   <p className="text-sm text-slate-400">
-                    {conversations.length} joueur(s) ayant déjà écrit au bot recevront ce message.
+                    {liveConversations.length} joueur(s) ayant déjà écrit au bot recevront ce message.
                   </p>
                 </div>
               </div>
@@ -567,6 +612,7 @@ export function ConversationsModule({ conversations, messages, selectedId }: Con
                       </div>
                     ))
                   )}
+                  <div ref={messagesEndRef} />
                 </div>
 
                 <div className="border-t border-white/8 bg-[#050f1f]/80 p-4">

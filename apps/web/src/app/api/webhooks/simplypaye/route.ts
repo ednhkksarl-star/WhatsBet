@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq, or } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { users, transactions, auditLogs } from "@whatsbet/database";
+import { users, transactions } from "@whatsbet/database";
+import { completeDepositTransaction } from "@/lib/deposits";
+import { isPaymentSuccess } from "@/lib/simplypaye";
 
 function findTransactionWhere(reference?: string, orderNumber?: string, idempotencyKey?: string) {
   const conditions = [];
@@ -21,8 +23,7 @@ export async function POST(req: NextRequest) {
       body.order_number ??
       body.simply_pay?.orderNumber ??
       body.transaction?.orderNumberFlex;
-    const amount = parseFloat(body.amount ?? body.montant ?? "0");
-    const status = String(body.status ?? body.code ?? "").toLowerCase();
+    const status = String(body.status ?? body.code ?? body.paymentStatus ?? "").toLowerCase();
     const userPhone = body.phone ?? body.customer_phone;
     const idempotencyKey = body.idempotency_key ?? reference;
 
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
       await db.insert(transactions).values({
         userId: user.id,
         type: "deposit",
-        amount: String(amount),
+        amount: String(parseFloat(body.amount ?? body.montant ?? "0")),
         status: "pending",
         reference: orderNumber ?? reference,
         idempotencyKey,
@@ -61,30 +62,10 @@ export async function POST(req: NextRequest) {
       [existing] = await db.select().from(transactions).where(whereClause!).limit(1);
     }
 
-    const isSuccess =
-      status === "success" || status === "completed" || status === "paid" || status === "0";
+    const isSuccess = isPaymentSuccess({ status, code: status });
 
     if (isSuccess && existing) {
-      const creditAmount = amount > 0 ? amount : parseFloat(existing.amount);
-      await db
-        .update(transactions)
-        .set({ status: "completed", completedAt: new Date() })
-        .where(eq(transactions.id, existing.id));
-
-      const [user] = await db.select().from(users).where(eq(users.id, existing.userId)).limit(1);
-      if (user) {
-        const newBalance = parseFloat(user.balance) + creditAmount;
-        await db
-          .update(users)
-          .set({ balance: String(newBalance), updatedAt: new Date() })
-          .where(eq(users.id, user.id));
-      }
-
-      await db.insert(auditLogs).values({
-        actorType: "system",
-        action: "deposit_completed",
-        payload: { reference, orderNumber, amount: creditAmount, userId: existing.userId },
-      });
+      await completeDepositTransaction(existing.id);
     }
 
     return NextResponse.json({ success: true });

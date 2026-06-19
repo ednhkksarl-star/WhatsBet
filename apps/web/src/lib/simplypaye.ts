@@ -30,9 +30,74 @@ function apiPath(): string {
   return MODE === "sandbox" ? "/api/simply-simulation" : "/api/simply-production";
 }
 
+function statusPath(orderNumber: string): string {
+  const encoded = encodeURIComponent(orderNumber);
+  return MODE === "sandbox"
+    ? `/api/checkstatus-simulation/${encoded}`
+    : `/api/checkstatus-ordernumber/${encoded}`;
+}
+
 function callbackUrl(): string {
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   return `${base.replace(/\/$/, "")}/api/webhooks/simplypaye`;
+}
+
+function apiHeaders(): Record<string, string> {
+  return {
+    Accept: "application/json",
+    "X-API-Key": API_KEY,
+    ...(process.env.SIMPLYPAYE_USER_AGENT
+      ? { "User-Agent": process.env.SIMPLYPAYE_USER_AGENT }
+      : {}),
+  };
+}
+
+export function isPaymentSuccess(check: { status?: string | null; code?: string | null }): boolean {
+  const status = String(check.status ?? "").toLowerCase();
+  const code = String(check.code ?? "").toLowerCase();
+  return (
+    status === "success" ||
+    status === "completed" ||
+    status === "paid" ||
+    status === "0" ||
+    code === "success" ||
+    code === "0" ||
+    code === "completed"
+  );
+}
+
+export async function checkPaymentStatus(orderNumber: string) {
+  if (!API_KEY) throw new SimplyPayeError("SimplyPaye non configuré");
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+  try {
+    const res = await fetch(`${BASE_URL.replace(/\/$/, "")}${statusPath(orderNumber)}`, {
+      method: "GET",
+      headers: apiHeaders(),
+      signal: controller.signal,
+      cache: "no-store",
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new SimplyPayeError(
+        (data as { message?: string }).message ?? "Statut SimplyPaye indisponible",
+        res.status,
+        data
+      );
+    }
+
+    return {
+      code: (data as { code?: string }).code ?? null,
+      status: (data as { status?: string }).status ?? null,
+      message: (data as { message?: string }).message ?? "",
+      raw: data,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function initiateMobilePayment(params: {
@@ -65,11 +130,7 @@ export async function initiateMobilePayment(params: {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Accept: "application/json",
-        "X-API-Key": API_KEY,
-        ...(process.env.SIMPLYPAYE_USER_AGENT
-          ? { "User-Agent": process.env.SIMPLYPAYE_USER_AGENT }
-          : {}),
+        ...apiHeaders(),
       },
       body: JSON.stringify(body),
       signal: controller.signal,

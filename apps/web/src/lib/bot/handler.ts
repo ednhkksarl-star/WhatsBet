@@ -28,6 +28,7 @@ import {
   phoneForSimplyPaye,
   SimplyPayeError,
 } from "@/lib/simplypaye";
+import { reconcilePendingDeposits } from "@/lib/deposits";
 
 async function getOrCreateUser(phone: string | null | undefined, name?: string, jid?: string) {
   const db = getDb();
@@ -270,6 +271,12 @@ export async function handleWhatsAppMessage(message: WhatsAppInboundMessage): Pr
   if (user.status === "blocked") {
     return persistMessages(user.id, text, ["❌ Votre compte est bloqué. Contactez le support."]).then(() => ["❌ Votre compte est bloqué. Contactez le support."]);
   }
+
+  await reconcilePendingDeposits({ userId: user.id });
+
+  const db = getDb();
+  const [freshUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+  const activeUser = freshUser ?? user;
   const cmd = parseCommand(text);
   const session = await getSession(user.id);
 
@@ -337,6 +344,7 @@ export async function handleWhatsAppMessage(message: WhatsAppInboundMessage): Pr
       replies.push(
         `📲 Demande de débit de *${formatCdf(amount)}* envoyée sur *${mobilePhone}*.\n\nValidez le paiement avec votre code Mobile Money sur votre téléphone.\n\nRéf. *${payment.orderNumber}*\n\nVotre solde sera crédité automatiquement après confirmation.`
       );
+      void reconcilePendingDeposits({ userId: user.id });
     } catch (err) {
       const msg =
         err instanceof SimplyPayeError
@@ -396,7 +404,7 @@ export async function handleWhatsAppMessage(message: WhatsAppInboundMessage): Pr
       replies.push(await listMatches());
       break;
     case "solde":
-      replies.push(`💰 Votre solde : *${formatCdf(user.balance)}*`);
+      replies.push(`💰 Votre solde : *${formatCdf(activeUser.balance)}*`);
       break;
     case "depot":
       await setSession(user.id, "awaiting_deposit_amount");
