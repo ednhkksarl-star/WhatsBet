@@ -71,15 +71,25 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .limit(10);
 
   return NextResponse.json({
-    parieur: user,
+    parieur: {
+      ...user,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+    },
     stats: {
       ticketsCount: ticketStats?.count ?? 0,
       ticketsVolume: parseFloat(ticketStats?.volume ?? "0"),
       depositsTotal: parseFloat(depositStats?.total ?? "0"),
       withdrawalsTotal: parseFloat(withdrawalStats?.total ?? "0"),
     },
-    recentTransactions,
-    recentTickets,
+    recentTransactions: recentTransactions.map((t) => ({
+      ...t,
+      createdAt: t.createdAt.toISOString(),
+    })),
+    recentTickets: recentTickets.map((t) => ({
+      ...t,
+      createdAt: t.createdAt.toISOString(),
+    })),
   });
 }
 

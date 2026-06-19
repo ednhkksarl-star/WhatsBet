@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DetailSidePanel, SidePanelRow, SidePanelSection } from "@/components/ui/detail-side-panel";
 import { STAFF_PERMISSIONS, permissionsByGroup } from "@/lib/staff-permissions";
 import { cn } from "@/lib/utils";
 import {
@@ -82,6 +83,7 @@ export function StaffModule() {
   const [editMember, setEditMember] = useState<StaffMember | null>(null);
   const [editRole, setEditRole] = useState<StaffRole | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: "member" | "role"; id: string; name: string } | null>(null);
+  const [viewMember, setViewMember] = useState<StaffMember | null>(null);
 
   const [memberForm, setMemberForm] = useState({
     name: "",
@@ -340,7 +342,11 @@ export function StaffModule() {
                   </tr>
                 ) : (
                   members.map((m) => (
-                    <tr key={m.id} className="transition hover:bg-white/[0.02]">
+                    <tr
+                      key={m.id}
+                      className="cursor-pointer transition hover:bg-white/[0.04]"
+                      onClick={() => setViewMember(m)}
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <Avatar name={m.name} src={avatarSrc(m.avatarBase64)} size="sm" />
@@ -358,7 +364,10 @@ export function StaffModule() {
                       </td>
                       <td className="px-6 py-4 text-muted">{m.twoFactorEnabled ? "Oui" : "Non"}</td>
                       <td className="px-6 py-4">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" onClick={() => setViewMember(m)} title="Voir">
+                            <UserCog className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="sm" onClick={() => openEditMember(m)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -622,6 +631,66 @@ export function StaffModule() {
           </div>
         </div>
       )}
+
+      <DetailSidePanel
+        open={!!viewMember}
+        onClose={() => setViewMember(null)}
+        title={viewMember?.name ?? "Membre"}
+        subtitle={viewMember?.email}
+        icon={
+          viewMember ? (
+            <Avatar name={viewMember.name} src={avatarSrc(viewMember.avatarBase64)} size="sm" />
+          ) : (
+            <UserCog className="h-5 w-5 text-brand-yellow-500" />
+          )
+        }
+        badge={
+          viewMember ? (
+            <Badge status={viewMember.status === "active" ? "active" : "blocked"} />
+          ) : undefined
+        }
+        footer={
+          viewMember ? (
+            <Button className="w-full" size="sm" onClick={() => { openEditMember(viewMember); setViewMember(null); }}>
+              <Pencil className="h-4 w-4" />
+              Modifier le membre
+            </Button>
+          ) : undefined
+        }
+      >
+        {viewMember && (
+          <>
+            <SidePanelSection title="Compte">
+              <dl>
+                <SidePanelRow label="Email" value={viewMember.email} mono />
+                <SidePanelRow
+                  label="Rôle"
+                  value={viewMember.staffRole?.name ?? ROLE_LABELS[viewMember.role] ?? viewMember.role}
+                />
+                <SidePanelRow label="2FA" value={viewMember.twoFactorEnabled ? "Activée" : "Désactivée"} />
+                <SidePanelRow
+                  label="Créé le"
+                  value={new Date(viewMember.createdAt).toLocaleDateString("fr-FR", { dateStyle: "long" })}
+                />
+              </dl>
+            </SidePanelSection>
+            {viewMember.staffRole?.permissions && viewMember.staffRole.permissions.length > 0 && (
+              <SidePanelSection title="Permissions">
+                <ul className="flex flex-wrap gap-2">
+                  {viewMember.staffRole.permissions.map((p) => (
+                    <li
+                      key={p}
+                      className="rounded-full bg-brand-yellow-500/10 px-2.5 py-1 text-[11px] font-medium text-brand-yellow-500 ring-1 ring-brand-yellow-500/20"
+                    >
+                      {STAFF_PERMISSIONS.find((sp) => sp.key === p)?.label ?? p}
+                    </li>
+                  ))}
+                </ul>
+              </SidePanelSection>
+            )}
+          </>
+        )}
+      </DetailSidePanel>
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}

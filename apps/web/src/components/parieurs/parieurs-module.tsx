@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Eye,
@@ -19,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { ParieurSidePanel } from "@/components/parieurs/parieur-side-panel";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PROVINCE_OPTIONS } from "@/lib/province-label";
 import { formatCdf } from "@/lib/utils";
@@ -57,6 +57,7 @@ export function ParieursModule() {
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
   const [editTarget, setEditTarget] = useState<Parieur | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Parieur | null>(null);
+  const [viewId, setViewId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
 
@@ -223,28 +224,30 @@ export function ParieursModule() {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {filtered.map((u) => (
-                  <tr key={u.id} className="transition hover:bg-white/[0.02]">
+                  <tr
+                    key={u.id}
+                    className="cursor-pointer transition hover:bg-white/[0.04]"
+                    onClick={() => setViewId(u.id)}
+                  >
                     <td className="px-6 py-4">
-                      <Link href={`/dashboard/parieurs/${u.id}`} className="flex items-center gap-3 hover:text-brand-yellow-500">
+                      <div className="flex items-center gap-3">
                         <Avatar
                           name={u.name ?? u.phone}
                           src={avatarSrc(u.profilePictureBase64)}
                           size="sm"
                         />
                         <span className="font-medium text-white">{u.name ?? "—"}</span>
-                      </Link>
+                      </div>
                     </td>
                     <td className="px-6 py-4 font-mono text-muted">{u.phone}</td>
                     <td className="px-6 py-4 font-mono font-semibold text-brand-yellow-500">{formatCdf(u.balance)}</td>
                     <td className="px-6 py-4"><Badge status={u.status} /></td>
                     <td className="px-6 py-4 text-muted">{new Date(u.createdAt).toLocaleDateString("fr-FR")}</td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-1">
-                        <Link href={`/dashboard/parieurs/${u.id}`}>
-                          <Button variant="ghost" size="sm" title="Voir détails">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
+                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="sm" title="Voir détails" onClick={() => setViewId(u.id)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="sm" title="Modifier" onClick={() => openEdit(u)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -358,6 +361,8 @@ export function ParieursModule() {
           </div>
         </div>
       )}
+
+      <ParieurSidePanel parieurId={viewId} onClose={() => setViewId(null)} />
 
       <ConfirmDialog
         open={!!deleteTarget}

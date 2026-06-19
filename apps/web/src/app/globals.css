@@ -15,6 +15,9 @@
   --brand-yellow-400: #ffd818;
   --muted: #94a3b8;
   --muted-foreground: #64748b;
+  --success: #22c55e;
+  --error: #ef4444;
+  --warning: #f59e0b;
 }
 
 @theme inline {
@@ -31,6 +34,9 @@
   --color-brand-yellow-400: var(--brand-yellow-400);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-success: var(--success);
+  --color-error: var(--error);
+  --color-warning: var(--warning);
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains);
 }
