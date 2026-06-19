@@ -106,8 +106,8 @@ export function StaffModule() {
     setLoading(true);
     try {
       const [mRes, rRes] = await Promise.all([fetch("/api/staff/members"), fetch("/api/staff/roles")]);
-      const mData = await mRes.json();
-      const rData = await rRes.json();
+      const mData = mRes.ok ? await mRes.json() : {};
+      const rData = rRes.ok ? await rRes.json() : {};
       if (mRes.ok) setMembers(mData.members ?? []);
       if (rRes.ok) setRoles(rData.roles ?? []);
     } finally {

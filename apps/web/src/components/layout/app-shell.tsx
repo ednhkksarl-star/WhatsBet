@@ -1,5 +1,6 @@
 import { SidebarNav } from "./sidebar-nav";
 import { Topbar } from "./topbar";
+import { DashboardPanelBg } from "./dashboard-panel-bg";
 import { eq, count } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { withdrawals } from "@whatsbet/database";
@@ -29,9 +30,10 @@ export async function AppShell({ children, userName, userRole, readOnly }: AppSh
   return (
     <div className="mesh-bg flex h-[100dvh] overflow-hidden">
       <SidebarNav readOnly={readOnly} />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <DashboardPanelBg />
         <Topbar userName={userName} userRole={userRole} readOnly={readOnly} pendingCount={pendingCount} />
-        <main className="min-h-0 flex-1 overflow-y-auto p-6 lg:p-8 scrollbar-thin">{children}</main>
+        <main className="relative z-10 min-h-0 flex-1 overflow-y-auto p-6 lg:p-8 scrollbar-thin">{children}</main>
       </div>
     </div>
   );

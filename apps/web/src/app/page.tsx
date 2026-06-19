@@ -18,8 +18,11 @@ import {
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { motion } from "framer-motion";
 import { HeroVisual } from "@/components/landing/hero-visual";
 import { CtaBannerGraphic } from "@/components/landing/cta-graphic";
+import { MotionBlock, MotionItem, MotionStagger } from "@/components/landing/landing-motion";
+import { cn } from "@/lib/utils";
 
 /* ─── Data ─── */
 const NAV_LINKS = [
@@ -113,11 +116,16 @@ export default function HomePage() {
     <div className="landing-page min-h-screen">
 
       {/* ══════════ NAVBAR ══════════ */}
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-[#020617]/80 backdrop-blur-xl">
+      <motion.header
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-[#001540]/85 backdrop-blur-xl"
+      >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
           {/* Logo */}
-          <Link href="/" className="shrink-0">
-            <Image src="/logo.png" alt="WhatsBet" width={1536} height={1024} className="h-12 w-auto" priority />
+          <Link href="/" className="block h-14 w-[148px] shrink-0 overflow-hidden">
+            <Image src="/logo.png" alt="WhatsBet" width={1536} height={1024} className="h-[4.75rem] w-auto max-w-none origin-left scale-[1.2]" priority />
           </Link>
 
           {/* Center nav — hidden on mobile */}
@@ -146,66 +154,73 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-      </header>
+      </motion.header>
 
       {/* ══════════ HERO ══════════ */}
       <section className="relative overflow-hidden pt-28 pb-16 lg:pt-32 lg:pb-24">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 lg:grid-cols-2 lg:gap-8 lg:px-8">
+        <div className="mx-auto grid max-w-7xl items-center gap-10 px-6 lg:grid-cols-2 lg:gap-6 lg:px-8">
           {/* Left — copy */}
-          <div className="max-w-xl">
-            {/* Badge */}
-            <div className="mb-6 inline-flex items-center rounded-full border border-brand-yellow-500/30 bg-brand-yellow-500/[0.06] px-3.5 py-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-brand-yellow-500">
-                Le premier bookmaker conversationnel sur WhatsApp
-              </span>
-            </div>
+          <MotionStagger className="max-w-xl" immediate>
+            <MotionItem>
+              <div className="mb-6 inline-flex items-center rounded-full border border-brand-yellow-500/35 bg-brand-yellow-500/10 px-4 py-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-yellow-500">
+                  Le premier bookmaker conversationnel sur WhatsApp
+                </span>
+              </div>
+            </MotionItem>
 
-            {/* Headline */}
-            <h1 className="text-[2.6rem] font-black uppercase leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-[3.4rem]">
-              Pariez. Discutez.{" "}
-              <span className="text-brand-yellow-500">Gagnez.</span>
-            </h1>
+            <MotionItem>
+              <h1 className="text-[2.4rem] font-black uppercase leading-[1.02] tracking-tight sm:text-5xl lg:text-[3.25rem]">
+                <span className="text-white">Pariez.</span>{" "}
+                <span className="text-brand-yellow-500">Discutez.</span>{" "}
+                <span className="text-white">Gagnez.</span>
+              </h1>
+            </MotionItem>
 
-            {/* Sub */}
-            <p className="mt-4 text-lg font-medium text-white/80">
-              Powered by <span className="font-bold text-white">Betika</span>
-            </p>
+            <MotionItem>
+              <p className="mt-5 text-lg font-medium text-white/85">
+                Powered by <span className="font-bold text-brand-yellow-500">Betika</span>
+              </p>
+            </MotionItem>
 
-            {/* Description */}
-            <p className="mt-4 max-w-md text-[15px] leading-relaxed text-slate-400">
-              Transformez WhatsApp en plateforme de paris sportifs. Consultez les matchs, pariez, déposez et gagnez — tout en conversation.
-            </p>
+            <MotionItem>
+              <p className="mt-4 max-w-md text-[15px] leading-relaxed text-slate-400">
+                Transformez WhatsApp en plateforme de paris sportifs. Consultez les matchs, pariez, déposez et gagnez — tout en conversation.
+              </p>
+            </MotionItem>
 
-            {/* CTAs */}
-            <div className="mt-8 flex flex-wrap gap-3">
-              <a
-                href="https://wa.me/"
-                className="inline-flex items-center gap-2.5 rounded-lg bg-brand-yellow-500 px-5 py-3 text-sm font-bold text-brand-blue-950 transition hover:bg-brand-yellow-400 glow-yellow"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Commencer sur WhatsApp
-              </a>
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 rounded-lg border-2 border-brand-yellow-500/60 px-5 py-3 text-sm font-bold text-brand-yellow-500 transition hover:bg-brand-yellow-500/10"
-              >
-                Accéder au dashboard
-              </Link>
-            </div>
+            <MotionItem>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <a
+                  href="https://wa.me/"
+                  className="inline-flex items-center gap-2.5 rounded-lg bg-brand-yellow-500 px-5 py-3 text-sm font-bold text-brand-blue-950 transition hover:bg-brand-yellow-400 glow-yellow"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Commencer sur WhatsApp
+                </a>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 rounded-lg border-2 border-brand-yellow-500/60 px-5 py-3 text-sm font-bold text-brand-yellow-500 transition hover:bg-brand-yellow-500/10"
+                >
+                  Accéder au dashboard
+                </Link>
+              </div>
+            </MotionItem>
 
-            {/* Stats row — inline with dividers */}
-            <div className="mt-12 flex flex-wrap items-center gap-0">
-              {STATS.map((s, i) => (
-                <div key={s.label} className="flex items-center">
-                  {i > 0 && <div className="stat-divider mx-5 hidden sm:block" />}
-                  <div className="py-1 pr-6 sm:pr-0">
-                    <p className="text-2xl font-black text-white">{s.value}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-500">{s.label}</p>
+            <MotionItem>
+              <div className="mt-12 flex flex-wrap items-center gap-0">
+                {STATS.map((s, i) => (
+                  <div key={s.label} className="flex items-center">
+                    {i > 0 && <div className="stat-divider mx-5 hidden sm:block" />}
+                    <div className="py-1 pr-6 sm:pr-0">
+                      <p className="text-2xl font-black text-white">{s.value}</p>
+                      <p className="mt-0.5 text-[11px] text-slate-500">{s.label}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                ))}
+              </div>
+            </MotionItem>
+          </MotionStagger>
 
           {/* Right — phone visual */}
           <HeroVisual />
@@ -220,114 +235,141 @@ export default function HomePage() {
 
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           {/* Section header */}
-          <div className="mb-14 text-center">
+          <MotionBlock className="mb-14 text-center">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.15em] text-brand-yellow-500">
               Pourquoi WhatsBet ?
             </p>
             <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
               Une plateforme{" "}
-              <span className="bg-gradient-to-r from-white to-brand-yellow-500 bg-clip-text text-transparent">
-                next-gen
-              </span>
+              <span className="text-brand-yellow-500">next-gen</span>
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-slate-400">
               Conçue pour la démo Betika et la montée en charge vers une infrastructure de paris conversationnelle à grande échelle.
             </p>
-          </div>
+          </MotionBlock>
 
           {/* 3×2 grid */}
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f) => (
-              <div key={f.title} className="feature-card rounded-2xl p-6">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-blue-900/60 ring-1 ring-white/[0.08]">
-                  <f.icon className="h-5 w-5 text-brand-yellow-500" strokeWidth={1.75} />
-                </div>
-                <h3 className="text-[15px] font-bold text-white">{f.title}</h3>
-                <p className="mt-2 text-[13px] leading-relaxed text-slate-400">{f.desc}</p>
-              </div>
-            ))}
-          </div>
+          <MotionStagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" stagger={0.07}>
+            {FEATURES.map((f, i) => {
+              const isYellow = i % 2 === 1;
+              return (
+                <MotionItem key={f.title}>
+                  <div className={cn("h-full rounded-2xl p-6", isYellow ? "feature-card-yellow" : "feature-card-blue")}>
+                    <div
+                      className={cn(
+                        "mb-4 flex h-10 w-10 items-center justify-center rounded-xl ring-1",
+                        isYellow
+                          ? "bg-brand-blue-950/15 ring-brand-blue-950/20"
+                          : "bg-brand-blue-900/60 ring-white/[0.08]"
+                      )}
+                    >
+                      <f.icon
+                        className={cn("h-5 w-5", isYellow ? "text-brand-blue-950" : "text-brand-yellow-500")}
+                        strokeWidth={1.75}
+                      />
+                    </div>
+                    <h3 className={cn("text-[15px] font-bold", isYellow ? "text-brand-blue-950" : "text-white")}>
+                      {f.title}
+                    </h3>
+                    <p className={cn("mt-2 text-[13px] leading-relaxed", isYellow ? "text-brand-blue-950/75" : "text-slate-400")}>
+                      {f.desc}
+                    </p>
+                  </div>
+                </MotionItem>
+              );
+            })}
+          </MotionStagger>
         </div>
       </section>
 
       {/* ══════════ CTA BANNER ══════════ */}
       <section id="avantages" className="py-8">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="cta-banner overflow-hidden rounded-3xl">
-            <div className="cta-banner-glow-yellow" aria-hidden />
-            <div className="cta-banner-glow-blue" aria-hidden />
+          <MotionBlock variant="scaleIn">
+            <div className="cta-banner overflow-hidden rounded-3xl">
+              <div className="cta-banner-glow-yellow" aria-hidden />
+              <div className="cta-banner-glow-blue" aria-hidden />
 
-            <div className="relative grid min-h-[300px] items-center lg:min-h-[320px] lg:grid-cols-2">
-              {/* Left */}
-              <div className="relative z-10 px-10 py-12 lg:px-14 lg:py-14">
-                <h2 className="text-[1.75rem] font-black leading-[1.15] text-white sm:text-3xl lg:text-[2.125rem]">
-                  Prêt pour la{" "}
-                  <span className="text-brand-yellow-500">démo Betika</span> ?
-                </h2>
-                <p className="mt-4 max-w-md text-[15px] leading-relaxed text-slate-400">
-                  Connectez le bot WhatsApp et lancez votre première session de paris conversationnels.
-                </p>
-                <Link
-                  href="/login"
-                  className="mt-8 inline-flex items-center gap-2 rounded-lg bg-brand-yellow-500 px-5 py-3 text-sm font-bold text-brand-blue-950 transition hover:bg-brand-yellow-400"
-                >
-                  Ouvrir le dashboard <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
+              <div className="relative grid min-h-[300px] items-center lg:min-h-[320px] lg:grid-cols-2">
+                <MotionStagger className="relative z-10 px-10 py-12 lg:px-14 lg:py-14" immediate stagger={0.1}>
+                  <MotionItem>
+                    <h2 className="text-[1.75rem] font-black leading-[1.15] text-white sm:text-3xl lg:text-[2.125rem]">
+                      Prêt pour la{" "}
+                      <span className="text-brand-yellow-500">démo Betika</span> ?
+                    </h2>
+                  </MotionItem>
+                  <MotionItem>
+                    <p className="mt-4 max-w-md text-[15px] leading-relaxed text-slate-400">
+                      Connectez le bot WhatsApp et lancez votre première session de paris conversationnels.
+                    </p>
+                  </MotionItem>
+                  <MotionItem>
+                    <Link
+                      href="/login"
+                      className="mt-8 inline-flex items-center gap-2 rounded-lg bg-brand-yellow-500 px-5 py-3 text-sm font-bold text-brand-blue-950 transition hover:bg-brand-yellow-400"
+                    >
+                      Ouvrir le dashboard <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </MotionItem>
+                </MotionStagger>
 
-              {/* Right graphic — desktop */}
-              <div className="relative z-10 hidden min-h-[300px] overflow-hidden lg:block">
-                <div className="absolute inset-y-0 right-0 flex w-full items-center justify-end pr-6 xl:pr-10">
-                  <CtaBannerGraphic className="h-full w-full" />
-                </div>
-              </div>
+                <MotionBlock className="relative z-10 hidden min-h-[300px] overflow-hidden lg:block" delay={0.15} variant="fadeIn">
+                  <div className="absolute inset-y-0 right-0 flex w-full items-center justify-end pr-6 xl:pr-10">
+                    <CtaBannerGraphic className="h-full w-full" />
+                  </div>
+                </MotionBlock>
 
-              {/* Right graphic — mobile */}
-              <div className="relative z-10 pb-10 lg:hidden">
-                <CtaBannerGraphic />
+                <MotionBlock className="relative z-10 pb-10 lg:hidden" delay={0.1} variant="fadeIn">
+                  <CtaBannerGraphic />
+                </MotionBlock>
               </div>
             </div>
-          </div>
+          </MotionBlock>
         </div>
       </section>
 
       {/* ══════════ TRUST BAR ══════════ */}
       <section className="py-20">
         <div className="mx-auto max-w-7xl px-6 text-center lg:px-8">
-          <h2 className="text-xl font-bold text-white sm:text-2xl">
-            Une technologie fiable. Une expérience révolutionnaire.
-          </h2>
-          <div className="mt-12 grid grid-cols-2 gap-8 lg:grid-cols-4">
+          <MotionBlock>
+            <h2 className="text-xl font-bold text-white sm:text-2xl">
+              Une technologie fiable. Une expérience{" "}
+              <span className="text-brand-yellow-500">révolutionnaire.</span>
+            </h2>
+          </MotionBlock>
+          <MotionStagger className="mt-12 grid grid-cols-2 gap-8 lg:grid-cols-4" stagger={0.1}>
             {TRUST.map((t) => (
-              <div key={t.title} className="flex flex-col items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-yellow-500/10 ring-1 ring-brand-yellow-500/25">
-                  <t.icon className="h-5 w-5 text-brand-yellow-500" strokeWidth={1.75} />
+              <MotionItem key={t.title}>
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-yellow-500/10 ring-1 ring-brand-yellow-500/25">
+                    <t.icon className="h-5 w-5 text-brand-yellow-500" strokeWidth={1.75} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">{t.title}</p>
+                    <p className="mt-1 text-xs text-slate-500">{t.desc}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-white">{t.title}</p>
-                  <p className="mt-1 text-xs text-slate-500">{t.desc}</p>
-                </div>
-              </div>
+              </MotionItem>
             ))}
-          </div>
+          </MotionStagger>
         </div>
       </section>
 
       {/* ══════════ FOOTER ══════════ */}
-      <footer id="tarifs" className="border-t border-white/[0.06] bg-[#01040f] py-14">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
-            {/* Logo col */}
-            <div className="lg:col-span-2">
-              <Image src="/logo.png" alt="WhatsBet" width={1536} height={1024} className="h-11 w-auto" />
+      <footer id="tarifs" className="relative overflow-hidden border-t border-white/[0.06] bg-[#000d28] py-14">
+        <div className="landing-brush-corner landing-brush-corner--bl" aria-hidden />
+        <div className="landing-brush-corner landing-brush-corner--br" aria-hidden />
+        <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
+          <MotionStagger className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5" stagger={0.06}>
+            <MotionItem className="lg:col-span-2">
+              <Image src="/logo.png" alt="WhatsBet" width={1536} height={1024} className="h-20 w-auto sm:h-24" />
               <p className="mt-4 max-w-xs text-xs leading-relaxed text-slate-500">
                 Le premier bookmaker conversationnel sur WhatsApp. Powered by Betika.
               </p>
-            </div>
+            </MotionItem>
 
-            {/* Link columns */}
             {Object.entries(FOOTER_LINKS).map(([title, links]) => (
-              <div key={title}>
+              <MotionItem key={title}>
                 <p className="mb-4 text-xs font-bold uppercase tracking-wider text-white">{title}</p>
                 <ul className="space-y-2.5">
                   {links.map((l) => (
@@ -338,11 +380,10 @@ export default function HomePage() {
                     </li>
                   ))}
                 </ul>
-              </div>
+              </MotionItem>
             ))}
 
-            {/* Social */}
-            <div>
+            <MotionItem>
               <p className="mb-4 text-xs font-bold uppercase tracking-wider text-white">Réseaux</p>
               <div className="flex gap-2.5">
                 {SOCIAL_LINKS.map(({ label, Icon }) => (
@@ -360,12 +401,12 @@ export default function HomePage() {
                   </a>
                 ))}
               </div>
-            </div>
-          </div>
+            </MotionItem>
+          </MotionStagger>
 
-          <p className="mt-12 border-t border-white/[0.06] pt-8 text-center text-[11px] text-slate-600">
-            © 2026 WhatsBet by Betika — BiG SARLU. Tous droits réservés.
-          </p>
+          <MotionBlock className="mt-12 border-t border-white/[0.06] pt-8 text-center text-[11px] text-slate-600" delay={0.2}>
+            <p>© 2026 WhatsBet by Betika — BiG SARLU. Tous droits réservés.</p>
+          </MotionBlock>
         </div>
       </footer>
     </div>

@@ -53,11 +53,62 @@ body {
 
 /* ─── Landing page background ─── */
 .landing-page {
-  background-color: #020617;
+  background-color: #001540;
   background-image:
-    radial-gradient(ellipse 90% 60% at 15% 0%, rgba(8, 40, 120, 0.35), transparent 55%),
-    radial-gradient(ellipse 70% 50% at 85% 10%, rgba(255, 224, 24, 0.04), transparent 50%),
-    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(8, 40, 120, 0.2), transparent 60%);
+    radial-gradient(ellipse 100% 70% at 0% 0%, rgba(26, 68, 148, 0.45), transparent 55%),
+    radial-gradient(ellipse 80% 55% at 100% 15%, rgba(255, 224, 24, 0.08), transparent 50%),
+    radial-gradient(ellipse 70% 50% at 50% 100%, rgba(8, 40, 120, 0.35), transparent 60%);
+}
+
+.landing-brush-corner {
+  position: absolute;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 224, 24, 0.95) 0%, rgba(255, 200, 0, 0.55) 45%, transparent 72%);
+  filter: blur(0.5px);
+}
+
+.landing-brush-corner--bl {
+  bottom: -80px;
+  left: -120px;
+  width: 320px;
+  height: 180px;
+  transform: rotate(8deg);
+  border-radius: 40% 60% 50% 50%;
+  opacity: 0.85;
+}
+
+.landing-brush-corner--br {
+  bottom: -60px;
+  right: -100px;
+  width: 280px;
+  height: 160px;
+  transform: rotate(-12deg);
+  border-radius: 50% 40% 60% 50%;
+  opacity: 0.75;
+}
+
+.landing-hero-brush {
+  position: absolute;
+  right: -12%;
+  top: 18%;
+  width: 78%;
+  height: 55%;
+  transform: rotate(-16deg);
+  border-radius: 42% 58% 55% 45%;
+  background: linear-gradient(
+    118deg,
+    transparent 10%,
+    rgba(255, 224, 24, 0.55) 35%,
+    rgba(255, 210, 0, 0.35) 55%,
+    transparent 85%
+  );
+  filter: blur(2px);
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.landing-hero-brush--secondary {
+  display: none;
 }
 
 /* Dot grid decoration */
@@ -92,7 +143,7 @@ body {
 /* CTA banner */
 .cta-banner {
   position: relative;
-  background: linear-gradient(105deg, #030b1a 0%, #061428 42%, #0a1e3d 72%, #061428 100%);
+  background: linear-gradient(105deg, #030b1a 0%, #061428 30%, #0a2860 52%, #1a4494 68%, rgba(255, 224, 24, 0.85) 100%);
   border: 1px solid rgba(26, 68, 148, 0.45);
   box-shadow:
     0 0 0 1px rgba(255, 224, 24, 0.04),
@@ -123,7 +174,29 @@ body {
   pointer-events: none;
 }
 
-/* Feature card */
+/* Feature cards */
+.feature-card-blue {
+  background: linear-gradient(155deg, rgba(8, 40, 120, 0.55) 0%, rgba(0, 21, 64, 0.92) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.feature-card-blue:hover {
+  border-color: rgba(255, 224, 24, 0.2);
+  box-shadow: 0 0 32px rgba(255, 224, 24, 0.08);
+}
+
+.feature-card-yellow {
+  background: linear-gradient(155deg, #ffe018 0%, #ffd000 55%, #f5c800 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #001540;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.feature-card-yellow:hover {
+  box-shadow: 0 12px 40px rgba(255, 224, 24, 0.25);
+}
+
 .feature-card {
   background: linear-gradient(160deg, rgba(8, 40, 120, 0.25) 0%, rgba(4, 15, 35, 0.8) 100%);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -170,4 +243,154 @@ body {
 .scrollbar-thin {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* ─── Phone stage — fond jaune waouh (landing + login) ─── */
+.phone-stage,
+.login-phone-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 0.5rem 2.5rem;
+}
+
+.phone-stage-aurora,
+.login-phone-aurora {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: 130%;
+  height: 125%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse 55% 48% at 50% 50%, rgba(255, 224, 24, 0.65) 0%, rgba(255, 200, 0, 0.28) 38%, transparent 72%),
+    radial-gradient(ellipse 85% 65% at 50% 58%, rgba(255, 224, 24, 0.22) 0%, transparent 62%);
+  filter: blur(18px);
+  pointer-events: none;
+  animation: phone-stage-aurora-pulse 4.5s ease-in-out infinite;
+}
+
+.phone-stage-aurora--inner,
+.login-phone-aurora--inner {
+  top: 46%;
+  width: 95%;
+  height: 90%;
+  background: radial-gradient(ellipse 50% 45% at 50% 50%, rgba(255, 240, 120, 0.5) 0%, transparent 68%);
+  filter: blur(28px);
+  animation: phone-stage-aurora-pulse 3s ease-in-out infinite reverse;
+}
+
+.phone-stage-orbit,
+.login-phone-orbit {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 108%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1.5px dashed rgba(255, 224, 24, 0.35);
+  box-shadow:
+    0 0 50px rgba(255, 224, 24, 0.2),
+    inset 0 0 80px rgba(255, 224, 24, 0.06);
+  pointer-events: none;
+  animation: phone-stage-orbit-spin 22s linear infinite;
+}
+
+.phone-stage-orbit::after,
+.login-phone-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 224, 24, 0.12);
+  animation: phone-stage-orbit-spin 14s linear infinite reverse;
+}
+
+.phone-stage-brush,
+.login-phone-brush {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(1px);
+}
+
+.phone-stage-brush--1,
+.login-phone-brush--1 {
+  left: -8%;
+  top: 38%;
+  width: 72%;
+  height: 20%;
+  transform: rotate(-14deg);
+  background: linear-gradient(90deg, transparent 5%, rgba(255, 224, 24, 0.75) 40%, rgba(255, 224, 24, 0.35) 60%, transparent 95%);
+  animation: phone-stage-brush-shimmer 3.5s ease-in-out infinite alternate;
+}
+
+.phone-stage-brush--2,
+.login-phone-brush--2 {
+  right: -12%;
+  top: 52%;
+  width: 58%;
+  height: 16%;
+  transform: rotate(10deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 210, 0, 0.55) 50%, transparent);
+  opacity: 0.85;
+  animation: phone-stage-brush-shimmer 4s ease-in-out infinite alternate-reverse;
+}
+
+.phone-stage-spotlight,
+.login-phone-spotlight {
+  position: absolute;
+  bottom: 8%;
+  left: 50%;
+  width: 75%;
+  height: 48px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse 100% 100% at 50% 0%, rgba(255, 224, 24, 0.45) 0%, rgba(255, 224, 24, 0.08) 45%, transparent 72%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.phone-stage-floor,
+.login-phone-floor {
+  position: absolute;
+  bottom: 6%;
+  left: 50%;
+  width: 55%;
+  height: 3px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 224, 24, 0.6), transparent);
+  box-shadow: 0 0 24px rgba(255, 224, 24, 0.5);
+  pointer-events: none;
+}
+
+.phone-stage-particle,
+.login-phone-particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: phone-stage-particle-float 5s ease-in-out infinite;
+}
+
+@keyframes phone-stage-aurora-pulse {
+  0%, 100% { opacity: 0.75; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+}
+
+@keyframes phone-stage-orbit-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes phone-stage-brush-shimmer {
+  from { opacity: 0.5; filter: blur(1px); }
+  to { opacity: 1; filter: blur(0.5px); }
+}
+
+@keyframes phone-stage-particle-float {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.6; }
+  50% { transform: translateY(-14px) scale(1.2); opacity: 1; }
 }

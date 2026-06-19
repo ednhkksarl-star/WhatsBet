@@ -88,19 +88,29 @@ export function SidebarNav({ readOnly }: SidebarNavProps) {
         )}
       >
         {!collapsed ? (
-          <Link href={readOnly ? "/betika" : "/dashboard"} className="shrink-0">
+          <Link href={readOnly ? "/betika" : "/dashboard"} className="block h-14 w-[148px] shrink-0 overflow-hidden">
             <Image
               src={readOnly ? "/favicon.png" : "/logo.png"}
               alt="WhatsBet"
               width={readOnly ? 36 : 1536}
               height={readOnly ? 36 : 1024}
-              className={readOnly ? "h-10 w-10" : "h-14 w-auto"}
+              className={
+                readOnly
+                  ? "h-12 w-12 max-w-none origin-left scale-110"
+                  : "h-[4.75rem] w-auto max-w-none origin-left scale-[1.22]"
+              }
               priority
             />
           </Link>
         ) : (
-          <Link href={readOnly ? "/betika" : "/dashboard"} className="shrink-0">
-            <Image src="/favicon.png" alt="WhatsBet" width={36} height={36} className="h-9 w-9" />
+          <Link href={readOnly ? "/betika" : "/dashboard"} className="block h-9 w-9 shrink-0 overflow-hidden">
+            <Image
+              src="/favicon.png"
+              alt="WhatsBet"
+              width={36}
+              height={36}
+              className="h-11 w-11 max-w-none origin-center scale-110"
+            />
           </Link>
         )}
         <button
