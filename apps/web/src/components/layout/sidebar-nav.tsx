@@ -83,8 +83,8 @@ export function SidebarNav({ readOnly }: SidebarNavProps) {
     >
       <div
         className={cn(
-          "flex border-b border-white/5 px-4",
-          collapsed ? "h-20 flex-col items-center justify-center gap-1.5 py-3" : "h-20 items-center justify-between"
+          "flex border-b border-white/5",
+          collapsed ? "flex-col items-center gap-2 px-2 py-3" : "h-20 items-center justify-between px-4"
         )}
       >
         {!collapsed ? (
@@ -103,19 +103,27 @@ export function SidebarNav({ readOnly }: SidebarNavProps) {
             />
           </Link>
         ) : (
-          <Link href={readOnly ? "/betika" : "/dashboard"} className="block h-9 w-9 shrink-0 overflow-hidden">
+          <Link
+            href={readOnly ? "/betika" : "/dashboard"}
+            title="WhatsBet"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-brand-yellow-500/30 bg-[#001540] p-2 shadow-[0_0_20px_rgba(255,224,24,0.12)] ring-1 ring-white/10 transition hover:border-brand-yellow-500/50"
+          >
             <Image
               src="/favicon.png"
               alt="WhatsBet"
-              width={36}
-              height={36}
-              className="h-11 w-11 max-w-none origin-center scale-110"
+              width={1024}
+              height={1024}
+              className="h-full w-full object-contain"
+              priority
             />
           </Link>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-white/5 hover:text-white"
+          className={cn(
+            "flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-white/5 hover:text-white",
+            collapsed && "mt-0.5"
+          )}
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
