@@ -20,5 +20,5 @@ export async function POST() {
     .set({ twoFactorSecret: secret, twoFactorEnabled: true, updatedAt: new Date() })
     .where(eq(admins.id, session.adminId));
 
-  return NextResponse.json({ secret, uri });
+  return NextResponse.json({ secret, uri, email: session.email });
 }

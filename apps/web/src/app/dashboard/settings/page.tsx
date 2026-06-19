@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { QrCode, Smartphone, CheckCircle2, Loader2, RefreshCw, Settings, Save, Copy, Check, Wifi, AlertCircle } from "lucide-react";
+import { TwoFactorSetupModal } from "@/components/settings/two-factor-setup-modal";
 
 interface GatewayStatus {
   status: "open" | "connecting" | "close" | "disconnected";
@@ -21,6 +22,9 @@ export default function ConfigurationPage() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [twoFaSetup, setTwoFaSetup] = useState<{ uri: string; secret: string; email?: string } | null>(null);
+  const [twoFaLoading, setTwoFaLoading] = useState(false);
+  const [twoFaError, setTwoFaError] = useState("");
 
   const fetchStatus = async () => {
     try {
@@ -85,6 +89,24 @@ export default function ConfigurationPage() {
       await navigator.clipboard.writeText(qrCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const enableTwoFactor = async () => {
+    setTwoFaLoading(true);
+    setTwoFaError("");
+    try {
+      const res = await fetch("/api/auth/2fa/setup", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.uri) {
+        setTwoFaError(data.error ?? "Impossible d'activer le 2FA");
+        return;
+      }
+      setTwoFaSetup({ uri: data.uri, secret: data.secret, email: data.email });
+    } catch {
+      setTwoFaError("Erreur réseau");
+    } finally {
+      setTwoFaLoading(false);
     }
   };
 
@@ -330,17 +352,20 @@ export default function ConfigurationPage() {
             </p>
             <button
               type="button"
-              onClick={async () => {
-                const res = await fetch("/api/auth/2fa/setup", { method: "POST" });
-                const data = await res.json();
-                if (data.uri) {
-                  alert(`2FA activé. Scannez ce lien dans votre app :\n\n${data.uri}\n\nSecret : ${data.secret}`);
-                }
-              }}
-              className="rounded-xl border border-brand-yellow-500/30 bg-brand-yellow-500/10 px-4 py-2 text-sm font-medium text-brand-yellow-500 hover:bg-brand-yellow-500/20"
+              onClick={() => void enableTwoFactor()}
+              disabled={twoFaLoading}
+              className="rounded-xl border border-brand-yellow-500/30 bg-brand-yellow-500/10 px-4 py-2 text-sm font-medium text-brand-yellow-500 hover:bg-brand-yellow-500/20 disabled:opacity-50"
             >
-              Activer 2FA
+              {twoFaLoading ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Activation…
+                </span>
+              ) : (
+                "Activer 2FA"
+              )}
             </button>
+            {twoFaError && <p className="mt-3 text-xs text-red-400">{twoFaError}</p>}
           </div>
 
           {/* System Info */}
@@ -361,6 +386,14 @@ export default function ConfigurationPage() {
           </div>
         </div>
       </div>
+
+      <TwoFactorSetupModal
+        open={!!twoFaSetup}
+        onClose={() => setTwoFaSetup(null)}
+        uri={twoFaSetup?.uri ?? ""}
+        secret={twoFaSetup?.secret ?? ""}
+        email={twoFaSetup?.email}
+      />
     </div>
   );
 }
