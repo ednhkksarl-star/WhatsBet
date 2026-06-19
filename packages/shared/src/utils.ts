@@ -38,6 +38,16 @@ export function normalizePhone(phone: string): string {
   return `+${cleaned}`;
 }
 
+export function isValidDisplayPhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 9 && digits.length <= 15;
+}
+
+export function lidPlaceholderPhone(lidJid: string): string {
+  const user = lidJid.split("@")[0] ?? lidJid;
+  return `lid:${user}`.slice(0, 32);
+}
+
 export const BOT_COMMANDS = [
   "pari",
   "matchs",

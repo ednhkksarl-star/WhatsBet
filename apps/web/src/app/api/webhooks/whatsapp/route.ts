@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
   const payload = JSON.parse(rawBody);
 
-  if (payload.type === "message" && payload.data?.from) {
+  if (payload.type === "message" && (payload.data?.from || payload.data?.jid)) {
     const replies = await handleWhatsAppMessage(payload.data);
     return NextResponse.json({ success: true, replies });
   }

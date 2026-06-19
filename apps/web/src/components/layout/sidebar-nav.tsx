@@ -79,9 +79,27 @@ export function SidebarNav({ readOnly }: SidebarNavProps) {
         collapsed ? "w-[72px]" : "w-64"
       )}
     >
-      <div className="flex h-16 items-center justify-between border-b border-white/5 px-4">
-        {!collapsed && (
-          <Image src={readOnly ? "/favicon.png" : "/logo.png"} alt="WhatsBet" width={readOnly ? 36 : 140} height={40} className={readOnly ? "h-9 w-9" : "h-9 w-auto"} />
+      <div
+        className={cn(
+          "flex border-b border-white/5 px-4",
+          collapsed ? "h-20 flex-col items-center justify-center gap-1.5 py-3" : "h-20 items-center justify-between"
+        )}
+      >
+        {!collapsed ? (
+          <Link href={readOnly ? "/betika" : "/dashboard"} className="shrink-0">
+            <Image
+              src={readOnly ? "/favicon.png" : "/logo.png"}
+              alt="WhatsBet"
+              width={readOnly ? 36 : 1536}
+              height={readOnly ? 36 : 1024}
+              className={readOnly ? "h-10 w-10" : "h-14 w-auto"}
+              priority
+            />
+          </Link>
+        ) : (
+          <Link href={readOnly ? "/betika" : "/dashboard"} className="shrink-0">
+            <Image src="/favicon.png" alt="WhatsBet" width={36} height={36} className="h-9 w-9" />
+          </Link>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}

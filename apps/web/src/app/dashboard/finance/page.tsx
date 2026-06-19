@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { formatCdf } from "@/lib/utils";
-import { ArrowDownCircle, ArrowUpCircle, Wallet, Percent, TrendingUp } from "lucide-react";
 
 export default async function FinancePage() {
   let finance = {
@@ -45,12 +44,12 @@ export default async function FinancePage() {
       <PageHeader title="Finance" description="Vue consolidée des flux financiers de la plateforme" />
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard title="Dépôts totaux" value={formatCdf(finance.totalDeposits)} icon={ArrowDownCircle} changeType="positive" index={0} />
-        <StatCard title="Retraits payés" value={formatCdf(finance.totalWithdrawals)} icon={ArrowUpCircle} index={1} />
-        <StatCard title="Volume parié" value={formatCdf(finance.totalVolume)} icon={TrendingUp} index={2} />
-        <StatCard title="Commissions (5%)" value={formatCdf(finance.commission)} icon={Percent} index={3} />
-        <StatCard title="Revenu net estimé" value={formatCdf(finance.netRevenue)} icon={Wallet} changeType="positive" index={4} />
-        <StatCard title="Retraits en attente" value={String(finance.pendingWithdrawals)} changeType={finance.pendingWithdrawals > 0 ? "negative" : "neutral"} icon={ArrowUpCircle} index={5} />
+        <StatCard title="Dépôts totaux" value={formatCdf(finance.totalDeposits)} icon="arrowDownCircle" changeType="positive" index={0} />
+        <StatCard title="Retraits payés" value={formatCdf(finance.totalWithdrawals)} icon="arrowUpCircle" index={1} />
+        <StatCard title="Volume parié" value={formatCdf(finance.totalVolume)} icon="trendingUp" index={2} />
+        <StatCard title="Commissions (5%)" value={formatCdf(finance.commission)} icon="percent" index={3} />
+        <StatCard title="Revenu net estimé" value={formatCdf(finance.netRevenue)} icon="wallet" changeType="positive" index={4} />
+        <StatCard title="Retraits en attente" value={String(finance.pendingWithdrawals)} changeType={finance.pendingWithdrawals > 0 ? "negative" : "neutral"} icon="arrowUpCircle" index={5} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

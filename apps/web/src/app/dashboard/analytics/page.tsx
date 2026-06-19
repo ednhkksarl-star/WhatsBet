@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { AreaChart, DonutChart } from "@/components/ui/charts";
 import { StatCard } from "@/components/ui/stat-card";
 import { formatCdf } from "@/lib/utils";
-import { BarChart3, Users, Ticket, TrendingUp } from "lucide-react";
 
 export default async function AnalyticsPage() {
   let stats = { totalUsers: 0, totalTickets: 0, totalVolume: 0, wonTickets: 0, lostTickets: 0, pendingTickets: 0 };
@@ -59,10 +58,10 @@ export default async function AnalyticsPage() {
       <PageHeader title="Analytics" description="Tendances, performance et insights de la plateforme" />
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Utilisateurs" value={String(stats.totalUsers)} icon={Users} index={0} />
-        <StatCard title="Tickets total" value={String(stats.totalTickets)} icon={Ticket} index={1} />
-        <StatCard title="Volume" value={formatCdf(stats.totalVolume)} icon={TrendingUp} index={2} />
-        <StatCard title="Taux conversion" value={stats.totalUsers > 0 ? `${Math.round((stats.totalTickets / stats.totalUsers) * 100)}%` : "0%"} icon={BarChart3} index={3} />
+        <StatCard title="Utilisateurs" value={String(stats.totalUsers)} icon="users" index={0} />
+        <StatCard title="Tickets total" value={String(stats.totalTickets)} icon="ticket" index={1} />
+        <StatCard title="Volume" value={formatCdf(stats.totalVolume)} icon="trendingUp" index={2} />
+        <StatCard title="Taux conversion" value={stats.totalUsers > 0 ? `${Math.round((stats.totalTickets / stats.totalUsers) * 100)}%` : "0%"} icon="barChart3" index={3} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

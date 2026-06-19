@@ -10,25 +10,79 @@ import {
   withdrawals,
   conversationSessions,
   messages,
+  transactions,
 } from "@whatsbet/database";
 import {
   parseCommand,
   normalizePhone,
   formatCdf,
+  isValidDisplayPhone,
+  lidPlaceholderPhone,
   BetEngine,
   QuickBetEngine,
 } from "@whatsbet/shared";
 import type { WhatsAppInboundMessage } from "@whatsbet/types";
+import {
+  initiateMobilePayment,
+  isValidMobileMoneyPhone,
+  phoneForSimplyPaye,
+  SimplyPayeError,
+} from "@/lib/simplypaye";
 
-async function getOrCreateUser(phone: string, name?: string) {
+async function getOrCreateUser(phone: string | null | undefined, name?: string, jid?: string) {
   const db = getDb();
-  const normalized = normalizePhone(phone);
-  const [existing] = await db.select().from(users).where(eq(users.phone, normalized)).limit(1);
-  if (existing) return existing;
+  const normalized = phone ? normalizePhone(phone) : null;
+  const validPhone = normalized && isValidDisplayPhone(normalized) ? normalized : null;
+  const placeholderPhone = !validPhone && jid?.includes("@lid") ? lidPlaceholderPhone(jid) : null;
+
+  let existing = null;
+  if (jid) {
+    [existing] = await db.select().from(users).where(eq(users.whatsappJid, jid)).limit(1);
+  }
+
+  if (!existing && jid?.includes("@lid")) {
+    const lidDigits = jid.split("@")[0] ?? "";
+    const legacyPhones = [`+${lidDigits}`, lidDigits, lidPlaceholderPhone(jid)];
+    for (const legacy of legacyPhones) {
+      [existing] = await db.select().from(users).where(eq(users.phone, legacy)).limit(1);
+      if (existing) break;
+    }
+  }
+
+  if (!existing && validPhone) {
+    [existing] = await db.select().from(users).where(eq(users.phone, validPhone)).limit(1);
+  }
+
+  if (!existing && placeholderPhone) {
+    [existing] = await db.select().from(users).where(eq(users.phone, placeholderPhone)).limit(1);
+  }
+
+  const storePhone = validPhone ?? placeholderPhone ?? (phone || "unknown");
+
+  if (existing) {
+    const updates: { name?: string; whatsappJid?: string; phone?: string; updatedAt: Date } = {
+      updatedAt: new Date(),
+    };
+    if (name) updates.name = name;
+    if (jid) updates.whatsappJid = jid;
+    if (validPhone && existing.phone !== validPhone) {
+      const [conflict] = await db.select().from(users).where(eq(users.phone, validPhone)).limit(1);
+      if (!conflict || conflict.id === existing.id) updates.phone = validPhone;
+    }
+    if (Object.keys(updates).length > 1) {
+      await db.update(users).set(updates).where(eq(users.id, existing.id));
+      return { ...existing, ...updates };
+    }
+    return existing;
+  }
 
   const [created] = await db
     .insert(users)
-    .values({ phone: normalized, name: name ?? undefined })
+    .values({
+      phone: storePhone,
+      name: name ?? undefined,
+      whatsappJid: jid ?? undefined,
+    })
     .returning();
   return created;
 }
@@ -60,15 +114,22 @@ async function setSession(userId: string, step: string, context: Record<string, 
 function helpMessage(): string {
   return `🏟 *WhatsBet by Betika*
 
-Commandes disponibles :
-• *matchs* — Voir les matchs du jour
-• *pari* — Construire un ticket
-• *quick* — QuickBet (sûr/équilibré/jackpot/IA)
-• *ticket* — Vos tickets
-• *solde* — Votre solde
-• *depot* — Déposer de l'argent
-• *retrait* — Retirer de l'argent
-• *aide* — Ce menu`;
+👋 Bienvenue ! Que souhaitez-vous faire ?
+
+*1.* matchs — Voir les matchs du jour
+*2.* pari — Construire un ticket
+*3.* quick — QuickBet (sûr / équilibré / jackpot / IA)
+*4.* ticket — Vos tickets
+*5.* solde — Votre solde
+*6.* depot — Déposer de l'argent
+*7.* retrait — Retirer de l'argent
+*8.* aide — Afficher ce menu
+
+Répondez avec le *numéro* ou le *mot-clé* (ex: *1* ou *matchs*).`;
+}
+
+function isGreeting(text: string): boolean {
+  return /^(bonjour|bonsoir|salut|hello|hi|hey|coucou|bjr|bon matin|bonne nuit)\b/i.test(text.trim());
 }
 
 async function listMatches(): Promise<string> {
@@ -81,13 +142,29 @@ async function listMatches(): Promise<string> {
     .orderBy(matches.startTime)
     .limit(10);
 
-  if (rows.length === 0) return "Aucun match disponible pour le moment.";
+  if (rows.length === 0) {
+    return "Aucun match disponible pour le moment.\n\nUn admin peut lancer *Sync* dans le dashboard (Matchs) puis réessayez *1* ou *matchs*.";
+  }
 
   let msg = "🏟 *MATCHS DU JOUR*\n\n";
-  rows.forEach((m, i) => {
-    msg += `${i + 1}. *${m.homeTeam}* vs *${m.awayTeam}*\n   🕐 ${new Date(m.startTime).toLocaleString("fr-FR")} | ${m.league}\n\n`;
-  });
-  msg += "⚡ *quick* pour QuickBet\n💰 *solde* pour votre solde";
+  for (let i = 0; i < rows.length; i++) {
+    const m = rows[i];
+    const matchOdds = await db
+      .select({ selection: odds.selection, value: odds.value })
+      .from(odds)
+      .innerJoin(markets, eq(odds.marketId, markets.id))
+      .where(and(eq(markets.matchId, m.id), eq(markets.type, "1x2")))
+      .limit(3);
+
+    const oddsLine = matchOdds.length
+      ? matchOdds.map((o) => `${o.selection}: *${parseFloat(o.value).toFixed(2)}*`).join(" | ")
+      : "Cotes bientôt disponibles";
+
+    msg += `*${i + 1}.* ${m.homeTeam} vs ${m.awayTeam}\n`;
+    msg += `   📊 ${oddsLine}\n`;
+    msg += `   🕐 ${new Date(m.startTime).toLocaleString("fr-FR")} | ${m.league}\n\n`;
+  }
+  msg += "Répondez *3* ou *quick* pour parier\nRépondez *5* ou *solde* pour votre solde";
   return msg;
 }
 
@@ -187,7 +264,7 @@ async function persistMessages(userId: string, incoming: string, replies: string
 
 export async function handleWhatsAppMessage(message: WhatsAppInboundMessage): Promise<string[]> {
   const replies: string[] = [];
-  const user = await getOrCreateUser(message.from, message.name);
+  const user = await getOrCreateUser(message.from, message.name, message.jid);
   const text = message.text.trim();
 
   if (user.status === "blocked") {
@@ -196,15 +273,78 @@ export async function handleWhatsAppMessage(message: WhatsAppInboundMessage): Pr
   const cmd = parseCommand(text);
   const session = await getSession(user.id);
 
+  // Réponse numérique au menu (1-8)
+  const menuChoice = text.trim();
+  const menuMap: Record<string, string> = {
+    "1": "matchs",
+    "2": "pari",
+    "3": "quick",
+    "4": "ticket",
+    "5": "solde",
+    "6": "depot",
+    "7": "retrait",
+    "8": "aide",
+  };
+  const resolvedCmd = menuMap[menuChoice] ?? cmd;
+
   if (session?.step === "awaiting_deposit_amount") {
     const amount = parseInt(text.replace(/\D/g, ""), 10);
     if (isNaN(amount) || amount < 500) {
       replies.push("Montant minimum : 500 CDF. Réessayez.");
       return persistMessages(user.id, text, replies).then(() => replies);
     }
-    await setSession(user.id, "idle");
-    const payUrl = process.env.SIMPLYPAYE_MOBILE_URL ?? "https://simplypaye.com/pay";
-    replies.push(`💳 Déposez *${formatCdf(amount)}* via SimplyPaye :\n${payUrl}?amount=${amount}&phone=${user.phone}`);
+    await setSession(user.id, "awaiting_deposit_mobile_money", { amount });
+    replies.push(
+      `💳 Dépôt de *${formatCdf(amount)}*\n\nEntrez votre numéro Mobile Money (ex: +243XXXXXXXXX).\nUne notification push vous sera envoyée pour valider avec votre code PIN.`
+    );
+    return persistMessages(user.id, text, replies).then(() => replies);
+  }
+
+  if (session?.step === "awaiting_deposit_mobile_money") {
+    const amount = (session.context as { amount?: number })?.amount ?? 0;
+    const mobilePhone = normalizePhone(text);
+
+    if (!isValidMobileMoneyPhone(mobilePhone)) {
+      replies.push("Numéro invalide. Entrez un numéro Mobile Money congolais (ex: +243812345678).");
+      return persistMessages(user.id, text, replies).then(() => replies);
+    }
+
+    const reference = `WB-${user.id.slice(0, 8)}-${Date.now()}`;
+
+    try {
+      const payment = await initiateMobilePayment({
+        phone: phoneForSimplyPaye(mobilePhone),
+        amount,
+        reference,
+      });
+
+      const db = getDb();
+      await db.insert(transactions).values({
+        userId: user.id,
+        type: "deposit",
+        amount: String(amount),
+        status: "pending",
+        reference: payment.orderNumber,
+        idempotencyKey: reference,
+        metadata: {
+          mobileMoneyPhone: mobilePhone,
+          orderNumber: payment.orderNumber,
+          simplyPaye: payment.raw,
+        },
+      });
+
+      await setSession(user.id, "idle");
+      replies.push(
+        `📲 Demande de débit de *${formatCdf(amount)}* envoyée sur *${mobilePhone}*.\n\nValidez le paiement avec votre code Mobile Money sur votre téléphone.\n\nRéf. *${payment.orderNumber}*\n\nVotre solde sera crédité automatiquement après confirmation.`
+      );
+    } catch (err) {
+      const msg =
+        err instanceof SimplyPayeError
+          ? err.message
+          : "Impossible d'initier le paiement. Réessayez dans quelques instants.";
+      replies.push(`❌ ${msg}`);
+    }
+
     return persistMessages(user.id, text, replies).then(() => replies);
   }
 
@@ -248,7 +388,7 @@ export async function handleWhatsAppMessage(message: WhatsAppInboundMessage): Pr
     return persistMessages(user.id, text, replies).then(() => replies);
   }
 
-  switch (cmd) {
+  switch (resolvedCmd) {
     case "aide":
       replies.push(helpMessage());
       break;
@@ -293,7 +433,13 @@ export async function handleWhatsAppMessage(message: WhatsAppInboundMessage): Pr
       replies.push("🎯 Construction de ticket — fonctionnalité complète bientôt disponible.\nUtilisez *quick* pour parier immédiatement.");
       break;
     default:
-      replies.push(helpMessage());
+      if (isGreeting(text)) {
+        replies.push(
+          `Bonjour${message.name?.trim() ? ` ${message.name.trim()}` : ""} ! 👋\n\n${helpMessage()}`
+        );
+      } else {
+        replies.push(helpMessage());
+      }
   }
 
   return persistMessages(user.id, text, replies).then(() => replies);

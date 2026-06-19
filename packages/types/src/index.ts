@@ -15,6 +15,7 @@ export type ConversationStep =
   | "idle"
   | "awaiting_stake"
   | "awaiting_deposit_amount"
+  | "awaiting_deposit_mobile_money"
   | "awaiting_withdrawal_amount"
   | "awaiting_mobile_money"
   | "building_ticket"
@@ -47,7 +48,8 @@ export interface DashboardKpis {
 }
 
 export interface WhatsAppInboundMessage {
-  from: string;
+  from: string | null;
+  jid?: string;
   name?: string;
   text: string;
   messageId: string;

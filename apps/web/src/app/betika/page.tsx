@@ -6,7 +6,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DonutChart } from "@/components/ui/charts";
 import { formatCdf } from "@/lib/utils";
-import { Users, Ticket, TrendingUp, Percent, Trophy } from "lucide-react";
 
 export default async function BetikaDashboardPage() {
   let kpis = { activeUsers: 0, totalTickets: 0, totalVolume: 0, commission: 0, matchCount: 0, won: 0, lost: 0, pending: 0 };
@@ -42,11 +41,11 @@ export default async function BetikaDashboardPage() {
       />
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard title="Utilisateurs actifs" value={String(kpis.activeUsers)} icon={Users} index={0} />
-        <StatCard title="Tickets" value={String(kpis.totalTickets)} icon={Ticket} index={1} />
-        <StatCard title="Volume (CA)" value={formatCdf(kpis.totalVolume)} icon={TrendingUp} index={2} />
-        <StatCard title="Commissions (5%)" value={formatCdf(kpis.commission)} icon={Percent} index={3} />
-        <StatCard title="Matchs sync" value={String(kpis.matchCount)} icon={Trophy} index={4} />
+        <StatCard title="Utilisateurs actifs" value={String(kpis.activeUsers)} icon="users" index={0} />
+        <StatCard title="Tickets" value={String(kpis.totalTickets)} icon="ticket" index={1} />
+        <StatCard title="Volume (CA)" value={formatCdf(kpis.totalVolume)} icon="trendingUp" index={2} />
+        <StatCard title="Commissions (5%)" value={formatCdf(kpis.commission)} icon="percent" index={3} />
+        <StatCard title="Matchs sync" value={String(kpis.matchCount)} icon="trophy" index={4} />
       </div>
 
       <Card>

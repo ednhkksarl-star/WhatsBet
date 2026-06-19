@@ -24,8 +24,10 @@ export const marketTypeEnum = pgEnum("market_type", ["1x2", "double_chance", "bt
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
-  phone: varchar("phone", { length: 20 }).notNull().unique(),
+  phone: varchar("phone", { length: 32 }).notNull().unique(),
+  whatsappJid: varchar("whatsapp_jid", { length: 128 }),
   name: varchar("name", { length: 255 }),
+  profilePictureBase64: text("profile_picture_base64"),
   balance: decimal("balance", { precision: 18, scale: 2 }).notNull().default("0"),
   status: userStatusEnum("status").notNull().default("active"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

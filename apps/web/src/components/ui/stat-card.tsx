@@ -1,19 +1,47 @@
 "use client";
 
-import { LucideIcon, TrendingDown, TrendingUp } from "lucide-react";
+import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  BarChart3,
+  Percent,
+  Ticket,
+  TrendingDown,
+  TrendingUp,
+  Trophy,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+
+const STAT_ICONS = {
+  users: Users,
+  ticket: Ticket,
+  trendingUp: TrendingUp,
+  arrowDownCircle: ArrowDownCircle,
+  arrowUpCircle: ArrowUpCircle,
+  percent: Percent,
+  wallet: Wallet,
+  barChart3: BarChart3,
+  trophy: Trophy,
+} as const satisfies Record<string, LucideIcon>;
+
+export type StatIconName = keyof typeof STAT_ICONS;
 
 interface StatCardProps {
   title: string;
   value: string;
   change?: string;
   changeType?: "positive" | "negative" | "neutral";
-  icon: LucideIcon;
+  icon: StatIconName;
   index?: number;
 }
 
-export function StatCard({ title, value, change, changeType = "neutral", icon: Icon, index = 0 }: StatCardProps) {
+export function StatCard({ title, value, change, changeType = "neutral", icon, index = 0 }: StatCardProps) {
+  const Icon = STAT_ICONS[icon];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}

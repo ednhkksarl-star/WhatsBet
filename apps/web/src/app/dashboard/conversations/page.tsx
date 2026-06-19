@@ -1,27 +1,47 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { users, messages } from "@whatsbet/database";
-import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Card } from "@/components/ui/card";
-import { Avatar } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { MessageSquare, Search } from "lucide-react";
+import { isValidDisplayPhone } from "@whatsbet/shared";
+import { formatDisplayPhone } from "@/lib/conversations";
+import { syncInvalidUserPhones } from "@/lib/sync-user-phone";
+import {
+  ConversationsModule,
+  type ConversationMessage,
+  type ConversationSummary,
+} from "@/components/conversations/conversations-module";
 
-export default async function ConversationsPage() {
-  const conversations: Array<{
-    id: string;
-    phone: string;
-    name: string | null;
-    lastMessage?: string;
-    lastMessageAt?: Date;
-  }> = [];
+interface Props {
+  searchParams: Promise<{ id?: string }>;
+}
+
+export default async function ConversationsPage({ searchParams }: Props) {
+  const { id: selectedId } = await searchParams;
+  const conversations: ConversationSummary[] = [];
+  let selectedMessages: ConversationMessage[] = [];
 
   try {
     const db = getDb();
-    const allUsers = await db.select().from(users).orderBy(desc(users.createdAt)).limit(50);
+    const usersWithMessages = await db
+      .selectDistinct({
+        id: users.id,
+        phone: users.phone,
+        whatsappJid: users.whatsappJid,
+        name: users.name,
+        profilePictureBase64: users.profilePictureBase64,
+        balance: users.balance,
+        status: users.status,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .innerJoin(messages, eq(messages.userId, users.id))
+      .orderBy(desc(users.createdAt))
+      .limit(100);
 
-    for (const user of allUsers) {
+    await syncInvalidUserPhones(
+      usersWithMessages.filter((u) => u.whatsappJid && !isValidDisplayPhone(u.phone)).map((u) => u.id)
+    );
+
+    for (const user of usersWithMessages) {
       const [lastMsg] = await db
         .select()
         .from(messages)
@@ -29,12 +49,37 @@ export default async function ConversationsPage() {
         .orderBy(desc(messages.createdAt))
         .limit(1);
 
+      const [freshUser] = await db
+        .select({ phone: users.phone })
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+
+      const phone = freshUser?.phone ?? user.phone;
+
+      const [counts] = await db
+        .select({
+          userCount: sql<number>`count(*) filter (where ${messages.fromMe} = false)`,
+          botCount: sql<number>`count(*) filter (where ${messages.fromMe} = true)`,
+        })
+        .from(messages)
+        .where(eq(messages.userId, user.id));
+
       conversations.push({
         id: user.id,
-        phone: user.phone,
+        phone,
+        displayPhone: formatDisplayPhone(phone, user.whatsappJid),
+        whatsappJid: user.whatsappJid,
+        profilePictureBase64: user.profilePictureBase64,
         name: user.name,
+        balance: user.balance,
+        status: user.status,
+        createdAt: user.createdAt.toISOString(),
         lastMessage: lastMsg?.text,
-        lastMessageAt: lastMsg?.createdAt,
+        lastMessageAt: lastMsg?.createdAt.toISOString(),
+        userMessageCount: Number(counts?.userCount ?? 0),
+        botMessageCount: Number(counts?.botCount ?? 0),
+        unread: lastMsg ? !lastMsg.fromMe : false,
       });
     }
 
@@ -44,60 +89,33 @@ export default async function ConversationsPage() {
       if (!b.lastMessageAt) return -1;
       return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
     });
-  } catch { /* DB not ready */ }
+
+    if (selectedId) {
+      const rows = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.userId, selectedId))
+        .orderBy(desc(messages.createdAt))
+        .limit(200);
+
+      selectedMessages = rows.map((m) => ({
+        id: m.id,
+        text: m.text,
+        fromMe: m.fromMe,
+        createdAt: m.createdAt.toISOString(),
+      }));
+    }
+  } catch {
+    /* DB not ready */
+  }
 
   return (
-    <div>
-      <PageHeader title="Conversations" description="Historique des échanges WhatsApp avec les joueurs" />
-
-      <Card className="overflow-hidden">
-        <div className="grid h-[calc(100vh-14rem)] grid-cols-1 md:grid-cols-3">
-          <div className="flex flex-col border-r border-white/5">
-            <div className="border-b border-white/5 p-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Rechercher..." className="pl-9 h-9" disabled />
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto scrollbar-thin">
-              {conversations.length === 0 ? (
-                <div className="p-8 text-center text-sm text-muted">Aucune conversation</div>
-              ) : (
-                conversations.map((conv) => (
-                  <Link
-                    key={conv.id}
-                    href={`/dashboard/conversations/${conv.id}`}
-                    className="flex items-center gap-3 border-b border-white/5 px-4 py-3.5 transition hover:bg-white/[0.03]"
-                  >
-                    <Avatar name={conv.name ?? conv.phone} size="md" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="truncate text-sm font-medium text-white">{conv.name ?? conv.phone}</p>
-                        {conv.lastMessageAt && (
-                          <span className="text-[10px] text-muted-foreground">
-                            {new Date(conv.lastMessageAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                        )}
-                      </div>
-                      <p className="truncate text-xs text-muted">{conv.lastMessage ?? "Aucun message"}</p>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="col-span-2 hidden flex-col items-center justify-center p-8 md:flex">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
-              <MessageSquare className="h-8 w-8 text-muted" />
-            </div>
-            <h2 className="text-lg font-semibold text-white">Sélectionnez une conversation</h2>
-            <p className="mt-2 max-w-sm text-center text-sm text-muted">
-              Choisissez un joueur pour voir l&apos;historique de ses échanges avec le bot WhatsApp.
-            </p>
-          </div>
-        </div>
-      </Card>
+    <div className="-m-6 flex h-[calc(100vh-4rem)] flex-col lg:-m-8">
+      <ConversationsModule
+        conversations={conversations}
+        messages={selectedMessages}
+        selectedId={selectedId}
+      />
     </div>
   );
 }

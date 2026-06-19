@@ -12,7 +12,7 @@
     "@hapi/boom": "^10.0.1",
     "@whatsbet/shared": "workspace:*",
     "@whatsbet/types": "workspace:*",
-    "@whiskeysockets/baileys": "6.7.9",
+    "@whiskeysockets/baileys": "6.7.23",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "pino": "^9.7.0",

@@ -5,6 +5,7 @@ import { QrCode, Smartphone, CheckCircle2, Loader2, RefreshCw, Settings, Save, C
 
 interface GatewayStatus {
   status: "open" | "connecting" | "close" | "disconnected";
+  gatewayRunning: boolean;
 }
 
 interface QrResponse {
@@ -13,6 +14,7 @@ interface QrResponse {
 
 export default function ConfigurationPage() {
   const [status, setStatus] = useState<GatewayStatus["status"]>("disconnected");
+  const [gatewayRunning, setGatewayRunning] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [botNumber, setBotNumber] = useState("");
@@ -23,11 +25,13 @@ export default function ConfigurationPage() {
   const fetchStatus = async () => {
     try {
       const res = await fetch("/api/gateway/status");
-      const data = await res.json();
+      const data: GatewayStatus = await res.json();
       setStatus(data.status || "disconnected");
+      setGatewayRunning(Boolean(data.gatewayRunning));
     } catch (err) {
       console.error("Failed to fetch status:", err);
       setStatus("disconnected");
+      setGatewayRunning(false);
     }
   };
 
@@ -84,10 +88,15 @@ export default function ConfigurationPage() {
     }
   };
 
-  const reconnect = () => {
+  const reconnect = async () => {
     setQrCode(null);
     setStatus("connecting");
-    fetchQr();
+    try {
+      await fetch("/api/gateway/reconnect", { method: "POST" });
+    } catch {
+      /* fetchStatus will reflect unreachable gateway */
+    }
+    await Promise.all([fetchStatus(), fetchQr()]);
   };
 
   useEffect(() => {
@@ -182,6 +191,14 @@ export default function ConfigurationPage() {
                           <CheckCircle2 className="h-20 w-20 text-green-500 mb-4" />
                           <div className="text-xl font-bold text-gray-800">Connecté !</div>
                           <div className="text-sm text-gray-500 mt-2">Le bot WhatsApp est prêt à être utilisé</div>
+                        </div>
+                      ) : !gatewayRunning ? (
+                        <div className="flex h-64 w-64 flex-col items-center justify-center text-center px-4">
+                          <AlertCircle className="h-20 w-20 text-red-400 mb-4" />
+                          <div className="text-xl font-bold text-gray-800">Gateway arrêté</div>
+                          <div className="text-sm text-gray-500 mt-2">
+                            Lancez <code className="text-xs bg-gray-100 px-1 rounded">pnpm dev:gateway</code> dans un terminal
+                          </div>
                         </div>
                       ) : (
                         <div className="flex h-64 w-64 flex-col items-center justify-center text-center">
@@ -311,7 +328,9 @@ export default function ConfigurationPage() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-white/60">Gateway</span>
-                <span className="text-white font-mono">En cours d&apos;exécution</span>
+                <span className={gatewayRunning ? "text-green-400 font-mono" : "text-red-400 font-mono"}>
+                  {gatewayRunning ? "En cours d'exécution" : "Arrêté (port 3001)"}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-white/60">Web App</span>

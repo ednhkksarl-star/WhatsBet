@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { formatCdf } from "@/lib/utils";
 import Link from "next/link";
 import {
-  Users, Ticket, ArrowDownCircle, ArrowUpCircle, TrendingUp, Percent,
   Activity, ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -85,12 +84,12 @@ export default async function DashboardPage() {
       />
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard title="Utilisateurs" value={String(data.totalUsers)} change={`${data.activeUsers} actifs`} icon={Users} index={0} />
-        <StatCard title="Tickets" value={String(data.totalTickets)} icon={Ticket} index={1} />
-        <StatCard title="Volume parié" value={formatCdf(data.totalVolume)} icon={TrendingUp} index={2} />
-        <StatCard title="Dépôts" value={formatCdf(data.totalDeposits)} changeType="positive" icon={ArrowDownCircle} index={3} />
-        <StatCard title="Retraits pending" value={String(data.pendingWithdrawals)} changeType={data.pendingWithdrawals > 0 ? "negative" : "neutral"} icon={ArrowUpCircle} index={4} />
-        <StatCard title="Commissions" value={formatCdf(data.commission)} change="5%" icon={Percent} index={5} />
+        <StatCard title="Utilisateurs" value={String(data.totalUsers)} change={`${data.activeUsers} actifs`} icon="users" index={0} />
+        <StatCard title="Tickets" value={String(data.totalTickets)} icon="ticket" index={1} />
+        <StatCard title="Volume parié" value={formatCdf(data.totalVolume)} icon="trendingUp" index={2} />
+        <StatCard title="Dépôts" value={formatCdf(data.totalDeposits)} changeType="positive" icon="arrowDownCircle" index={3} />
+        <StatCard title="Retraits pending" value={String(data.pendingWithdrawals)} changeType={data.pendingWithdrawals > 0 ? "negative" : "neutral"} icon="arrowUpCircle" index={4} />
+        <StatCard title="Commissions" value={formatCdf(data.commission)} change="5%" icon="percent" index={5} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

@@ -5,7 +5,7 @@ import { PageHeader, EmptyState } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { SyncMatchesButton } from "@/components/sync-matches-button";
 
 export default async function MatchesPage() {
   let rows: (typeof matches.$inferSelect)[] = [];
@@ -20,7 +20,7 @@ export default async function MatchesPage() {
       <PageHeader
         title="Matchs"
         description="Matchs synchronisés depuis The Odds API"
-        action={<form action="/api/cron/sync-odds" method="GET"><Button variant="secondary" size="sm" type="submit">Sync maintenant</Button></form>}
+        action={<SyncMatchesButton />}
       />
 
       {rows.length === 0 ? (
