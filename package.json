@@ -1,0 +1,22 @@
+{
+  "name": "whatsbet",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:web": "pnpm --filter @whatsbet/web dev",
+    "dev:gateway": "pnpm --filter @whatsbet/gateway dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "db:generate": "pnpm --filter @whatsbet/database db:generate",
+    "db:push": "pnpm --filter @whatsbet/database db:push",
+    "db:studio": "pnpm --filter @whatsbet/database db:studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
+  },
+  "packageManager": "pnpm@11.2.2",
+  "engines": {
+    "node": ">=20"
+  }
+}

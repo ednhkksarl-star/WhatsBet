@@ -1,0 +1,173 @@
+@import "tailwindcss";
+
+:root {
+  --background: #020617;
+  --foreground: #f8fafc;
+  --landing-bg: #030b1a;
+  --landing-card: #071428;
+  --landing-card-border: rgba(255, 255, 255, 0.06);
+  --brand-blue-950: #001540;
+  --brand-blue-900: #002070;
+  --brand-blue-800: #082878;
+  --brand-blue-700: #103080;
+  --brand-blue-600: #1a4494;
+  --brand-yellow-500: #ffe018;
+  --brand-yellow-400: #ffd818;
+  --muted: #94a3b8;
+  --muted-foreground: #64748b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-landing-bg: var(--landing-bg);
+  --color-landing-card: var(--landing-card);
+  --color-brand-blue-950: var(--brand-blue-950);
+  --color-brand-blue-900: var(--brand-blue-900);
+  --color-brand-blue-800: var(--brand-blue-800);
+  --color-brand-blue-700: var(--brand-blue-700);
+  --color-brand-blue-600: var(--brand-blue-600);
+  --color-brand-yellow-500: var(--brand-yellow-500);
+  --color-brand-yellow-400: var(--brand-yellow-400);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+}
+
+* { border-color: rgba(255, 255, 255, 0.08); }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--landing-bg);
+  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(255, 224, 24, 0.25);
+  color: #fff;
+}
+
+/* ─── Landing page background ─── */
+.landing-page {
+  background-color: #020617;
+  background-image:
+    radial-gradient(ellipse 90% 60% at 15% 0%, rgba(8, 40, 120, 0.35), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 10%, rgba(255, 224, 24, 0.04), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(8, 40, 120, 0.2), transparent 60%);
+}
+
+/* Dot grid decoration */
+.dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+/* Hero yellow swoosh */
+.hero-swoosh {
+  position: absolute;
+  right: -40px;
+  top: 50%;
+  transform: translateY(-50%) rotate(-8deg);
+  width: 420px;
+  height: 80px;
+  background: linear-gradient(90deg, transparent, rgba(255, 224, 24, 0.55), rgba(255, 224, 24, 0.15), transparent);
+  filter: blur(2px);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Glow effects */
+.glow-blue {
+  box-shadow: 0 0 80px rgba(16, 48, 128, 0.5), 0 0 120px rgba(8, 40, 120, 0.3);
+}
+
+.glow-yellow {
+  box-shadow: 0 0 60px rgba(255, 224, 24, 0.15);
+}
+
+/* CTA banner */
+.cta-banner {
+  position: relative;
+  background: linear-gradient(105deg, #030b1a 0%, #061428 42%, #0a1e3d 72%, #061428 100%);
+  border: 1px solid rgba(26, 68, 148, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(255, 224, 24, 0.04),
+    0 24px 64px rgba(0, 0, 0, 0.45),
+    0 0 100px rgba(8, 40, 120, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.cta-banner-glow-yellow {
+  position: absolute;
+  left: -8%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42%;
+  height: 130%;
+  background: radial-gradient(ellipse at 25% 50%, rgba(255, 224, 24, 0.16) 0%, transparent 68%);
+  pointer-events: none;
+}
+
+.cta-banner-glow-blue {
+  position: absolute;
+  right: -6%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 58%;
+  height: 140%;
+  background: radial-gradient(ellipse at 72% 50%, rgba(48, 130, 255, 0.32) 0%, rgba(16, 48, 128, 0.18) 38%, transparent 72%);
+  pointer-events: none;
+}
+
+/* Feature card */
+.feature-card {
+  background: linear-gradient(160deg, rgba(8, 40, 120, 0.25) 0%, rgba(4, 15, 35, 0.8) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.feature-card:hover {
+  border-color: rgba(255, 224, 24, 0.15);
+  box-shadow: 0 0 30px rgba(255, 224, 24, 0.06);
+}
+
+/* Stat divider */
+.stat-divider {
+  width: 1px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.12);
+  align-self: center;
+}
+
+/* App shell / login backgrounds */
+.mesh-bg {
+  background-color: #020617;
+  background-image:
+    radial-gradient(ellipse 80% 55% at 15% 0%, rgba(8, 40, 120, 0.32), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 85% 100%, rgba(8, 40, 120, 0.14), transparent 50%),
+    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(255, 224, 24, 0.03), transparent 60%);
+}
+
+.glass {
+  background: rgba(7, 20, 40, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.glass-elevated {
+  background: linear-gradient(165deg, rgba(10, 35, 80, 0.35) 0%, rgba(4, 15, 35, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 0 0 1px rgba(255, 224, 24, 0.04),
+    0 24px 56px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
