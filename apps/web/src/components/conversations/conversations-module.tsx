@@ -720,11 +720,11 @@ export function ConversationsModule({ conversations, messages, selectedId }: Con
 
                   <div className="mt-4">
                     <Link
-                      href="/dashboard/users"
+                      href="/dashboard/parieurs"
                       className="inline-flex items-center gap-1.5 text-xs text-brand-yellow-500 hover:underline"
                     >
                       <User className="h-3.5 w-3.5" />
-                      Voir la fiche utilisateur
+                      Voir la fiche parieur
                     </Link>
                   </div>
                 </div>

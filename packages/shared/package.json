@@ -10,5 +10,11 @@
   "dependencies": {
     "@whatsbet/types": "workspace:*",
     "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  },
+  "scripts": {
+    "test": "vitest run"
   }
 }

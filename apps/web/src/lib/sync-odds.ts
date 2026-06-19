@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db";
 import { matches, markets, odds } from "@whatsbet/database";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 interface OddsApiEvent {
   id: string;
@@ -16,6 +16,13 @@ interface OddsApiEvent {
   }>;
 }
 
+const MARKET_MAP: Record<string, "1x2" | "double_chance" | "btts" | "over_under"> = {
+  h2h: "1x2",
+  double_chance: "double_chance",
+  btts: "btts",
+  totals: "over_under",
+};
+
 export async function syncOddsFromApi(): Promise<{ synced: number }> {
   const apiKey = process.env.THE_ODDS_API_KEY;
   if (!apiKey) {
@@ -23,7 +30,7 @@ export async function syncOddsFromApi(): Promise<{ synced: number }> {
   }
 
   const res = await fetch(
-    `https://api.the-odds-api.com/v4/sports/soccer/odds?apiKey=${apiKey}&regions=eu&markets=h2h,totals&oddsFormat=decimal`,
+    `https://api.the-odds-api.com/v4/sports/soccer/odds?apiKey=${apiKey}&regions=eu&markets=h2h,double_chance,btts,totals&oddsFormat=decimal`,
     { cache: "no-store" }
   );
 
@@ -61,19 +68,28 @@ export async function syncOddsFromApi(): Promise<{ synced: number }> {
     if (!bookmaker) continue;
 
     for (const market of bookmaker.markets) {
-      const marketType = market.key === "h2h" ? "1x2" : market.key === "totals" ? "over_under" : "1x2";
+      const marketType = MARKET_MAP[market.key];
+      if (!marketType) continue;
 
-      let [marketRow] = await db.select().from(markets).where(eq(markets.matchId, matchId)).limit(1);
+      let [marketRow] = await db
+        .select()
+        .from(markets)
+        .where(and(eq(markets.matchId, matchId), eq(markets.type, marketType)))
+        .limit(1);
 
       if (!marketRow) {
         [marketRow] = await db
           .insert(markets)
-          .values({ matchId, type: marketType as "1x2" | "over_under", name: market.key })
+          .values({ matchId, type: marketType, name: market.key })
           .returning();
       }
 
       for (const outcome of market.outcomes) {
-        const [existingOdd] = await db.select().from(odds).where(eq(odds.marketId, marketRow.id)).limit(1);
+        const [existingOdd] = await db
+          .select()
+          .from(odds)
+          .where(and(eq(odds.marketId, marketRow.id), eq(odds.selection, outcome.name)))
+          .limit(1);
 
         if (!existingOdd) {
           await db.insert(odds).values({
@@ -84,7 +100,7 @@ export async function syncOddsFromApi(): Promise<{ synced: number }> {
         } else {
           await db
             .update(odds)
-            .set({ value: String(outcome.price), updatedAt: new Date() })
+            .set({ value: String(outcome.price), updatedAt: new Date(), isActive: true })
             .where(eq(odds.id, existingOdd.id));
         }
       }

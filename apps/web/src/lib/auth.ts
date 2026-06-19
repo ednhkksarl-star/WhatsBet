@@ -49,7 +49,11 @@ export async function destroySession() {
 }
 
 export function canWrite(role: AdminRole): boolean {
-  return role === "SUPER_ADMIN" || role === "SUPPORT";
+  return role === "SUPER_ADMIN" || role === "ADMIN" || role === "AGENT" || role === "SUPPORT";
+}
+
+export function canManageStaff(role: AdminRole): boolean {
+  return role === "SUPER_ADMIN";
 }
 
 export function isBetikaReadOnly(role: AdminRole): boolean {

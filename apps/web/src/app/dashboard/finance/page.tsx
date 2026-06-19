@@ -1,4 +1,4 @@
-import { eq, count, sum } from "drizzle-orm";
+import { eq, and, count, sum, desc } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { transactions, withdrawals, tickets } from "@whatsbet/database";
 import { PageHeader } from "@/components/ui/page-header";
@@ -6,20 +6,40 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { formatCdf } from "@/lib/utils";
+import { logger } from "@/lib/logger";
+
+export const dynamic = "force-dynamic";
 
 export default async function FinancePage() {
   let finance = {
-    totalDeposits: 0, totalWithdrawals: 0, pendingWithdrawals: 0,
-    totalVolume: 0, commission: 0, netRevenue: 0,
+    totalDeposits: 0,
+    totalWithdrawals: 0,
+    pendingWithdrawals: 0,
+    totalVolume: 0,
+    commission: 0,
+    netRevenue: 0,
     recentDeposits: [] as { amount: string; status: string; createdAt: Date }[],
     recentWithdrawals: [] as { amount: string; status: string; createdAt: Date }[],
   };
 
   try {
     const db = getDb();
-    const [dep] = await db.select({ total: sum(transactions.amount) }).from(transactions).where(eq(transactions.type, "deposit"));
-    const [withTotal] = await db.select({ total: sum(withdrawals.amount) }).from(withdrawals).where(eq(withdrawals.status, "paid"));
-    const [pendingW] = await db.select({ count: count() }).from(withdrawals).where(eq(withdrawals.status, "pending"));
+
+    const [dep] = await db
+      .select({ total: sum(transactions.amount) })
+      .from(transactions)
+      .where(and(eq(transactions.type, "deposit"), eq(transactions.status, "completed")));
+
+    const [withTotal] = await db
+      .select({ total: sum(withdrawals.amount) })
+      .from(withdrawals)
+      .where(eq(withdrawals.status, "paid"));
+
+    const [pendingW] = await db
+      .select({ count: count() })
+      .from(withdrawals)
+      .where(eq(withdrawals.status, "pending"));
+
     const [vol] = await db.select({ total: sum(tickets.stake) }).from(tickets);
 
     const totalDeposits = parseFloat(dep?.total ?? "0");
@@ -27,17 +47,42 @@ export default async function FinancePage() {
     const totalVolume = parseFloat(vol?.total ?? "0");
     const commission = totalVolume * 0.05;
 
-    const recentDeposits = await db.select({ amount: transactions.amount, status: transactions.status, createdAt: transactions.createdAt })
-      .from(transactions).where(eq(transactions.type, "deposit")).orderBy(transactions.createdAt).limit(5);
-    const recentWithdrawals = await db.select({ amount: withdrawals.amount, status: withdrawals.status, createdAt: withdrawals.createdAt })
-      .from(withdrawals).orderBy(withdrawals.createdAt).limit(5);
+    const recentDeposits = await db
+      .select({
+        amount: transactions.amount,
+        status: transactions.status,
+        createdAt: transactions.createdAt,
+      })
+      .from(transactions)
+      .where(eq(transactions.type, "deposit"))
+      .orderBy(desc(transactions.createdAt))
+      .limit(5);
+
+    const recentWithdrawals = await db
+      .select({
+        amount: withdrawals.amount,
+        status: withdrawals.status,
+        createdAt: withdrawals.createdAt,
+      })
+      .from(withdrawals)
+      .orderBy(desc(withdrawals.createdAt))
+      .limit(5);
 
     finance = {
-      totalDeposits, totalWithdrawals, pendingWithdrawals: pendingW?.count ?? 0,
-      totalVolume, commission, netRevenue: commission + totalDeposits - totalWithdrawals,
-      recentDeposits, recentWithdrawals,
+      totalDeposits,
+      totalWithdrawals,
+      pendingWithdrawals: pendingW?.count ?? 0,
+      totalVolume,
+      commission,
+      netRevenue: commission + totalDeposits - totalWithdrawals,
+      recentDeposits,
+      recentWithdrawals,
     };
-  } catch { /* DB not ready */ }
+  } catch (err) {
+    logger.error("finance_page_query_failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
 
   return (
     <div>
@@ -59,8 +104,8 @@ export default async function FinancePage() {
             {finance.recentDeposits.length === 0 ? (
               <p className="text-sm text-muted">Aucun dépôt</p>
             ) : (
-              finance.recentDeposits.map((d, i) => (
-                <div key={i} className="flex items-center justify-between">
+              finance.recentDeposits.map((d) => (
+                <div key={`${d.createdAt.toISOString()}-${d.amount}`} className="flex items-center justify-between">
                   <span className="font-mono text-sm text-success">{formatCdf(d.amount)}</span>
                   <div className="flex items-center gap-3">
                     <Badge status={d.status} />
@@ -78,8 +123,8 @@ export default async function FinancePage() {
             {finance.recentWithdrawals.length === 0 ? (
               <p className="text-sm text-muted">Aucun retrait</p>
             ) : (
-              finance.recentWithdrawals.map((w, i) => (
-                <div key={i} className="flex items-center justify-between">
+              finance.recentWithdrawals.map((w) => (
+                <div key={`${w.createdAt.toISOString()}-${w.amount}`} className="flex items-center justify-between">
                   <span className="font-mono text-sm text-white">{formatCdf(w.amount)}</span>
                   <div className="flex items-center gap-3">
                     <Badge status={w.status} />

@@ -32,7 +32,7 @@ export class OddsCalculator {
 export class BetEngine {
   static readonly MIN_SELECTIONS = 1;
   static readonly MAX_SELECTIONS = 15;
-  static readonly MIN_STAKE = 500;
+  static readonly MIN_STAKE = 300;
   static readonly MAX_STAKE = 5_000_000;
 
   static validate(input: TicketInput): { valid: boolean; error?: string } {

@@ -13,6 +13,8 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [totpCode, setTotpCode] = useState("");
+  const [needs2FA, setNeeds2FA] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -24,13 +26,14 @@ export default function LoginPage() {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, totpCode: totpCode || undefined }),
     });
 
     const data = await res.json();
     setLoading(false);
 
     if (!res.ok) {
+      if (data.requires2FA) setNeeds2FA(true);
       setError(data.error ?? "Erreur de connexion");
       return;
     }
@@ -138,6 +141,25 @@ export default function LoginPage() {
                     />
                   </div>
                 </div>
+
+                {needs2FA && (
+                  <div>
+                    <label htmlFor="totp" className="mb-2 block text-sm font-medium text-slate-300">
+                      Code 2FA (6 chiffres)
+                    </label>
+                    <Input
+                      id="totp"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      value={totpCode}
+                      onChange={(e) => setTotpCode(e.target.value)}
+                      className="h-11 font-mono tracking-widest"
+                      placeholder="000000"
+                      maxLength={6}
+                      required
+                    />
+                  </div>
+                )}
 
                 {error && (
                   <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">

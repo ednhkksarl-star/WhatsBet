@@ -27,11 +27,11 @@ export async function AppShell({ children, userName, userRole, readOnly }: AppSh
   const pendingCount = readOnly ? 0 : await getPendingCount();
 
   return (
-    <div className="mesh-bg flex min-h-screen">
+    <div className="mesh-bg flex h-[100dvh] overflow-hidden">
       <SidebarNav readOnly={readOnly} />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar userName={userName} userRole={userRole} readOnly={readOnly} pendingCount={pendingCount} />
-        <main className="flex-1 overflow-auto p-6 lg:p-8 scrollbar-thin">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto p-6 lg:p-8 scrollbar-thin">{children}</main>
       </div>
     </div>
   );

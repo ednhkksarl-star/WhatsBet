@@ -1,5 +1,5 @@
 export type UserStatus = "active" | "blocked" | "suspended";
-export type AdminRole = "SUPER_ADMIN" | "BETIKA" | "SUPPORT";
+export type AdminRole = "SUPER_ADMIN" | "ADMIN" | "AGENT" | "SUPPORT" | "BETIKA";
 export type TicketStatus = "pending" | "won" | "lost" | "cancelled";
 export type TransactionStatus = "pending" | "completed" | "failed" | "cancelled";
 export type TransactionType = "deposit" | "withdrawal" | "bet" | "win" | "refund";

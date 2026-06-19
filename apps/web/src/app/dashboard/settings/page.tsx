@@ -322,6 +322,27 @@ export default function ConfigurationPage() {
             </div>
           </div>
 
+          {/* 2FA */}
+          <div className="rounded-3xl border border-brand-blue-700/50 bg-brand-blue-800/20 p-6">
+            <h3 className="font-semibold text-white mb-2">Authentification à deux facteurs</h3>
+            <p className="text-sm text-white/60 mb-4">
+              Activez le 2FA TOTP pour sécuriser votre compte admin (Google Authenticator, Authy…).
+            </p>
+            <button
+              type="button"
+              onClick={async () => {
+                const res = await fetch("/api/auth/2fa/setup", { method: "POST" });
+                const data = await res.json();
+                if (data.uri) {
+                  alert(`2FA activé. Scannez ce lien dans votre app :\n\n${data.uri}\n\nSecret : ${data.secret}`);
+                }
+              }}
+              className="rounded-xl border border-brand-yellow-500/30 bg-brand-yellow-500/10 px-4 py-2 text-sm font-medium text-brand-yellow-500 hover:bg-brand-yellow-500/20"
+            >
+              Activer 2FA
+            </button>
+          </div>
+
           {/* System Info */}
           <div className="rounded-3xl border border-brand-blue-700/50 bg-brand-blue-800/20 p-6">
             <h3 className="font-semibold text-white mb-4">Informations système</h3>

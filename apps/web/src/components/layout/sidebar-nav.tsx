@@ -5,7 +5,8 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Users,
+  UserCog,
+  UserRound,
   Ticket,
   ArrowDownCircle,
   ArrowUpCircle,
@@ -40,7 +41,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Opérations",
     items: [
-      { href: "/dashboard/users", icon: Users, label: "Utilisateurs" },
+      { href: "/dashboard/parieurs", icon: UserRound, label: "Parieurs" },
       { href: "/dashboard/tickets", icon: Ticket, label: "Tickets" },
       { href: "/dashboard/conversations", icon: MessageSquare, label: "Conversations" },
       { href: "/dashboard/withdrawals", icon: ArrowUpCircle, label: "Retraits", betikaHidden: true },
@@ -52,6 +53,7 @@ const navGroups: NavGroup[] = [
     label: "Système",
     items: [
       { href: "/dashboard/notifications", icon: Bell, label: "Notifications" },
+      { href: "/dashboard/staff", icon: UserCog, label: "Utilisateurs", betikaHidden: true },
       { href: "/dashboard/settings", icon: Settings, label: "Configuration", betikaHidden: true },
       { href: "/dashboard/logs", icon: ScrollText, label: "Audit Log", betikaHidden: true },
     ],
@@ -75,7 +77,7 @@ export function SidebarNav({ readOnly }: SidebarNavProps) {
   return (
     <aside
       className={cn(
-        "flex h-screen flex-col border-r border-white/5 bg-brand-blue-950/80 backdrop-blur-xl transition-all duration-300",
+        "flex h-full shrink-0 flex-col border-r border-white/5 bg-brand-blue-950/80 backdrop-blur-xl transition-all duration-300",
         collapsed ? "w-[72px]" : "w-64"
       )}
     >

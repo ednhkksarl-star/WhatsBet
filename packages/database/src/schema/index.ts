@@ -14,7 +14,8 @@ import {
 import { relations } from "drizzle-orm";
 
 export const userStatusEnum = pgEnum("user_status", ["active", "blocked", "suspended"]);
-export const adminRoleEnum = pgEnum("admin_role", ["SUPER_ADMIN", "BETIKA", "SUPPORT"]);
+export const adminRoleEnum = pgEnum("admin_role", ["SUPER_ADMIN", "ADMIN", "AGENT", "SUPPORT", "BETIKA"]);
+export const adminStatusEnum = pgEnum("admin_status", ["active", "disabled"]);
 export const ticketStatusEnum = pgEnum("ticket_status", ["pending", "won", "lost", "cancelled"]);
 export const transactionStatusEnum = pgEnum("transaction_status", ["pending", "completed", "failed", "cancelled"]);
 export const transactionTypeEnum = pgEnum("transaction_type", ["deposit", "withdrawal", "bet", "win", "refund"]);
@@ -30,9 +31,23 @@ export const users = pgTable("users", {
   profilePictureBase64: text("profile_picture_base64"),
   balance: decimal("balance", { precision: 18, scale: 2 }).notNull().default("0"),
   status: userStatusEnum("status").notNull().default("active"),
+  province: varchar("province", { length: 8 }),
+  city: varchar("city", { length: 100 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (t) => [index("users_phone_idx").on(t.phone)]);
+
+export const staffRoles = pgTable("staff_roles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 100 }).notNull(),
+  slug: varchar("slug", { length: 100 }).notNull().unique(),
+  description: text("description"),
+  permissions: jsonb("permissions").$type<string[]>().notNull().default([]),
+  adminRole: adminRoleEnum("admin_role").notNull().default("SUPPORT"),
+  isSystem: boolean("is_system").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
 
 export const admins = pgTable("admins", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -40,6 +55,9 @@ export const admins = pgTable("admins", {
   passwordHash: text("password_hash").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   role: adminRoleEnum("role").notNull().default("SUPPORT"),
+  staffRoleId: uuid("staff_role_id").references(() => staffRoles.id),
+  avatarBase64: text("avatar_base64"),
+  status: adminStatusEnum("status").notNull().default("active"),
   twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
   twoFactorSecret: text("two_factor_secret"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

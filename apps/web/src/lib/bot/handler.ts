@@ -20,6 +20,11 @@ import {
   lidPlaceholderPhone,
   BetEngine,
   QuickBetEngine,
+  DEFAULT_QUICKBET_STAKE,
+  parseProvinceChoice,
+  formatProvinceMenu,
+  validateCityName,
+  getProvinceById,
 } from "@whatsbet/shared";
 import type { WhatsAppInboundMessage } from "@whatsbet/types";
 import {
@@ -29,6 +34,8 @@ import {
   SimplyPayeError,
 } from "@/lib/simplypaye";
 import { reconcilePendingDeposits } from "@/lib/deposits";
+import { recordBet } from "@/lib/ledger";
+import { logUserNotification } from "@/lib/notifications";
 
 async function getOrCreateUser(phone: string | null | undefined, name?: string, jid?: string) {
   const db = getDb();
@@ -68,7 +75,9 @@ async function getOrCreateUser(phone: string | null | undefined, name?: string, 
     if (jid) updates.whatsappJid = jid;
     if (validPhone && existing.phone !== validPhone) {
       const [conflict] = await db.select().from(users).where(eq(users.phone, validPhone)).limit(1);
-      if (!conflict || conflict.id === existing.id) updates.phone = validPhone;
+      if (!conflict || conflict.id === existing.id) {
+        updates.phone = validPhone;
+      }
     }
     if (Object.keys(updates).length > 1) {
       await db.update(users).set(updates).where(eq(users.id, existing.id));
@@ -129,6 +138,27 @@ function helpMessage(): string {
 Répondez avec le *numéro* ou le *mot-clé* (ex: *1* ou *matchs*).`;
 }
 
+function needsLocationProfile(user: { province: string | null; city: string | null }): boolean {
+  return !user.province || !user.city;
+}
+
+function provinceOnboardingMessage(name?: string): string {
+  const greeting = name?.trim() ? `Bonjour *${name.trim()}* ! 👋\n\n` : "👋 Bienvenue sur *WhatsBet* !\n\n";
+  return `${greeting}Pour commencer, indiquez votre *province* en RDC.\n\n${formatProvinceMenu()}\n\nRépondez avec le *numéro* ou le *nom* de votre province.`;
+}
+
+function cityOnboardingMessage(provinceId: string): string {
+  const province = getProvinceById(provinceId);
+  const label = province?.name ?? provinceId;
+  return `✅ Province : *${label}*\n\nMaintenant, indiquez votre *ville* (ex: Kinshasa, Goma, Lubumbashi…) :`;
+}
+
+function onboardingCompleteMessage(provinceId: string, city: string): string {
+  const province = getProvinceById(provinceId);
+  const label = province?.name ?? provinceId;
+  return `✅ Profil enregistré : *${label}*, ${city}\n\n${helpMessage()}`;
+}
+
 function isGreeting(text: string): boolean {
   return /^(bonjour|bonsoir|salut|hello|hi|hey|coucou|bjr|bon matin|bonne nuit)\b/i.test(text.trim());
 }
@@ -169,11 +199,11 @@ async function listMatches(): Promise<string> {
   return msg;
 }
 
-async function handleQuickBet(userId: string, choice?: string): Promise<string> {
-  const db = getDb();
-  const stake = 5000;
+type QuickBetType = "safe" | "balanced" | "jackpot" | "custom";
 
-  const availableOdds = await db
+async function fetchAvailableOdds() {
+  const db = getDb();
+  const rows = await db
     .select({
       matchId: matches.id,
       oddId: odds.id,
@@ -186,69 +216,125 @@ async function handleQuickBet(userId: string, choice?: string): Promise<string> 
     .from(odds)
     .innerJoin(markets, eq(odds.marketId, markets.id))
     .innerJoin(matches, eq(markets.matchId, matches.id))
-    .where(and(eq(odds.isActive, true), eq(matches.status, "scheduled")))
+    .where(and(eq(odds.isActive, true), eq(matches.status, "scheduled"), eq(markets.type, "1x2")))
     .limit(100);
 
-  const mapped = availableOdds.map((o) => ({
-    ...o,
-    oddValue: parseFloat(o.oddValue),
-  }));
+  return rows.map((o) => ({ ...o, oddValue: parseFloat(o.oddValue) }));
+}
 
+function formatQuickBetPreview(type: QuickBetType, selections: ReturnType<typeof QuickBetEngine.generate>, stake: number, ticket: ReturnType<typeof BetEngine.build>, mapped: Awaited<ReturnType<typeof fetchAvailableOdds>>) {
+  let msg = `⚡ *QuickBet ${type.toUpperCase()}* — aperçu\n\n`;
+  selections.forEach((s, i) => {
+    const match = mapped.find((m) => m.matchId === s.matchId);
+    msg += `${i + 1}. ${match?.homeTeam} vs ${match?.awayTeam} → ${s.selection} (×${s.oddValue.toFixed(2)})\n`;
+  });
+  msg += `\n💰 Mise : ${formatCdf(stake)}\n📊 Cote totale : ×${ticket.totalOdds.toFixed(2)}\n🎯 Gain potentiel : ${formatCdf(ticket.potentialWin)}\n\n`;
+  msg += `*1* — Accepter le ticket\n*2* — Régénérer\n*annuler* — Abandonner`;
+  return msg;
+}
+
+async function previewQuickBet(userId: string, choice?: string): Promise<string> {
+  const stake = DEFAULT_QUICKBET_STAKE;
+  const mapped = await fetchAvailableOdds();
   if (mapped.length === 0) return "Aucune cote disponible. Réessayez plus tard.";
 
-  const typeMap: Record<string, "safe" | "balanced" | "jackpot" | "custom"> = {
+  const typeMap: Record<string, QuickBetType> = {
     "1": "safe",
     "2": "balanced",
     "3": "jackpot",
     "4": "custom",
   };
-
   const type = typeMap[choice ?? "2"] ?? "balanced";
+
+  const [user] = await getDb().select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!user || parseFloat(user.balance) < stake) {
+    return `Solde insuffisant. Mise requise : ${formatCdf(stake)}. Tapez *depot* pour recharger.`;
+  }
 
   try {
     const selections = QuickBetEngine.generate(type, mapped, stake, 3);
     const ticket = BetEngine.build({ userId, stake, selections });
-
-    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-    if (!user || parseFloat(user.balance) < stake) {
-      return `Solde insuffisant. Mise requise : ${formatCdf(stake)}. Tapez *depot* pour recharger.`;
-    }
-
-    const [created] = await db
-      .insert(tickets)
-      .values({
-        userId,
-        stake: String(stake),
-        totalOdds: String(ticket.totalOdds),
-        potentialWin: String(ticket.potentialWin),
-        isQuickBet: true,
-        quickBetType: type,
-      })
-      .returning();
-
-    for (const sel of selections) {
-      await db.insert(ticketSelections).values({
-        ticketId: created.id,
-        matchId: sel.matchId,
-        oddId: sel.oddId,
-        selection: sel.selection,
-        oddValue: String(sel.oddValue),
-      });
-    }
-
-    const newBalance = parseFloat(user.balance) - stake;
-    await db.update(users).set({ balance: String(newBalance), updatedAt: new Date() }).where(eq(users.id, userId));
-
-    let msg = `⚡ *QuickBet ${type.toUpperCase()}*\n\n`;
-    selections.forEach((s, i) => {
-      const match = mapped.find((m) => m.matchId === s.matchId);
-      msg += `${i + 1}. ${match?.homeTeam} vs ${match?.awayTeam} → ${s.selection} (×${s.oddValue.toFixed(2)})\n`;
+    await setSession(userId, "quickbet_confirm", {
+      type,
+      stake,
+      selections,
+      totalOdds: ticket.totalOdds,
+      potentialWin: ticket.potentialWin,
     });
-    msg += `\n💰 Mise : ${formatCdf(stake)}\n📊 Cote totale : ×${ticket.totalOdds.toFixed(2)}\n🎯 Gain potentiel : ${formatCdf(ticket.potentialWin)}`;
-    return msg;
+    return formatQuickBetPreview(type, selections, stake, ticket, mapped);
   } catch (e) {
     return e instanceof Error ? e.message : "Erreur QuickBet";
   }
+}
+
+async function placeQuickBetFromSession(userId: string): Promise<string> {
+  const db = getDb();
+  const session = await getSession(userId);
+  const ctx = session?.context as {
+    type?: QuickBetType;
+    stake?: number;
+    selections?: Array<{ matchId: string; oddId: string; selection: string; oddValue: number }>;
+    totalOdds?: number;
+    potentialWin?: number;
+  } | null;
+
+  if (!ctx?.selections?.length || !ctx.stake) {
+    await setSession(userId, "idle");
+    return "Session expirée. Tapez *quick* pour recommencer.";
+  }
+
+  const stake = ctx.stake;
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!user || parseFloat(user.balance) < stake) {
+    await setSession(userId, "idle");
+    return `Solde insuffisant. Mise requise : ${formatCdf(stake)}. Tapez *depot* pour recharger.`;
+  }
+
+  const ticket = BetEngine.build({ userId, stake, selections: ctx.selections });
+
+  const [created] = await db
+    .insert(tickets)
+    .values({
+      userId,
+      stake: String(stake),
+      totalOdds: String(ticket.totalOdds),
+      potentialWin: String(ticket.potentialWin),
+      isQuickBet: true,
+      quickBetType: ctx.type ?? "balanced",
+    })
+    .returning();
+
+  for (const sel of ctx.selections) {
+    await db.insert(ticketSelections).values({
+      ticketId: created.id,
+      matchId: sel.matchId,
+      oddId: sel.oddId,
+      selection: sel.selection,
+      oddValue: String(sel.oddValue),
+    });
+  }
+
+  const newBalance = parseFloat(user.balance) - stake;
+  await db.update(users).set({ balance: String(newBalance), updatedAt: new Date() }).where(eq(users.id, userId));
+  await recordBet({ userId, amount: stake, ticketId: created.id, metadata: { quickBetType: ctx.type } });
+
+  const mapped = await fetchAvailableOdds();
+  let msg = `✅ *Ticket confirmé !*\n\n`;
+  ctx.selections.forEach((s, i) => {
+    const match = mapped.find((m) => m.matchId === s.matchId);
+    msg += `${i + 1}. ${match?.homeTeam} vs ${match?.awayTeam} → ${s.selection} (×${s.oddValue.toFixed(2)})\n`;
+  });
+  msg += `\n💰 Mise : ${formatCdf(stake)}\n📊 Cote : ×${ticket.totalOdds.toFixed(2)}\n🎯 Gain potentiel : ${formatCdf(ticket.potentialWin)}\n\nBon jeu ! 🍀`;
+
+  await logUserNotification({
+    userId,
+    type: "ticket_created",
+    message: msg,
+    sent: true,
+  });
+
+  await setSession(userId, "idle");
+  return msg;
 }
 
 async function persistMessages(userId: string, incoming: string, replies: string[]) {
@@ -279,6 +365,57 @@ export async function handleWhatsAppMessage(message: WhatsAppInboundMessage): Pr
   const activeUser = freshUser ?? user;
   const cmd = parseCommand(text);
   const session = await getSession(user.id);
+
+  if (session?.step === "awaiting_province") {
+    const province = parseProvinceChoice(text);
+    if (!province) {
+      replies.push(`Province non reconnue. Répondez avec un numéro (1–26) ou le nom exact.\n\n${formatProvinceMenu()}`);
+      return persistMessages(user.id, text, replies).then(() => replies);
+    }
+
+    await db
+      .update(users)
+      .set({ province: province.id, updatedAt: new Date() })
+      .where(eq(users.id, user.id));
+    await setSession(user.id, "awaiting_city", { provinceId: province.id });
+    replies.push(cityOnboardingMessage(province.id));
+    return persistMessages(user.id, text, replies).then(() => replies);
+  }
+
+  if (session?.step === "awaiting_city") {
+    const provinceId =
+      (session.context as { provinceId?: string })?.provinceId ?? activeUser.province ?? undefined;
+    if (!provinceId) {
+      await setSession(user.id, "awaiting_province");
+      replies.push(provinceOnboardingMessage(message.name));
+      return persistMessages(user.id, text, replies).then(() => replies);
+    }
+
+    const city = validateCityName(text);
+    if (!city) {
+      replies.push("Ville invalide. Entrez le nom de votre ville (2 à 100 caractères, ex: *Goma*).");
+      return persistMessages(user.id, text, replies).then(() => replies);
+    }
+
+    await db
+      .update(users)
+      .set({ city, updatedAt: new Date() })
+      .where(eq(users.id, user.id));
+    await setSession(user.id, "idle");
+    replies.push(onboardingCompleteMessage(provinceId, city));
+    return persistMessages(user.id, text, replies).then(() => replies);
+  }
+
+  if (needsLocationProfile(activeUser)) {
+    if (!activeUser.province) {
+      await setSession(user.id, "awaiting_province");
+      replies.push(provinceOnboardingMessage(message.name));
+    } else {
+      await setSession(user.id, "awaiting_city", { provinceId: activeUser.province });
+      replies.push(cityOnboardingMessage(activeUser.province));
+    }
+    return persistMessages(user.id, text, replies).then(() => replies);
+  }
 
   // Réponse numérique au menu (1-8)
   const menuChoice = text.trim();
@@ -386,13 +523,35 @@ export async function handleWhatsAppMessage(message: WhatsAppInboundMessage): Pr
     });
     await db.update(users).set({ balance: String(balance - amount), updatedAt: new Date() }).where(eq(users.id, user.id));
     await setSession(user.id, "idle");
+    await logUserNotification({
+      userId: user.id,
+      type: "withdrawal_requested",
+      message: `Demande de retrait ${formatCdf(amount)} en attente de validation.`,
+      sent: false,
+    });
     replies.push(`✅ Demande de retrait de *${formatCdf(amount)}* enregistrée.\nValidation admin sous 24h.`);
     return persistMessages(user.id, text, replies).then(() => replies);
   }
 
   if (session?.step === "quickbet_menu") {
-    replies.push(await handleQuickBet(user.id, text.trim()));
-    await setSession(user.id, "idle");
+    replies.push(await previewQuickBet(user.id, text.trim()));
+    return persistMessages(user.id, text, replies).then(() => replies);
+  }
+
+  if (session?.step === "quickbet_confirm") {
+    const answer = text.trim().toLowerCase();
+    if (answer === "1" || answer === "accepter" || answer === "oui") {
+      replies.push(await placeQuickBetFromSession(user.id));
+    } else if (answer === "2" || answer === "regenerer" || answer === "régénérer") {
+      const ctx = session.context as { type?: string } | null;
+      const typeChoice = ctx?.type === "safe" ? "1" : ctx?.type === "jackpot" ? "3" : ctx?.type === "custom" ? "4" : "2";
+      replies.push(await previewQuickBet(user.id, typeChoice));
+    } else if (answer === "annuler" || answer === "non") {
+      await setSession(user.id, "idle");
+      replies.push("QuickBet annulé.");
+    } else {
+      replies.push("Répondez *1* pour accepter, *2* pour régénérer ou *annuler*.");
+    }
     return persistMessages(user.id, text, replies).then(() => replies);
   }
 

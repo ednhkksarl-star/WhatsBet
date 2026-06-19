@@ -6,11 +6,16 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { AreaChart, DonutChart } from "@/components/ui/charts";
 import { StatCard } from "@/components/ui/stat-card";
 import { formatCdf } from "@/lib/utils";
+import { RdcMapPanel } from "@/components/analytics/rdc-map-panel";
+import { getProvinceStats } from "@/lib/analytics-provinces";
+import Link from "next/link";
+import { Download } from "lucide-react";
 
 export default async function AnalyticsPage() {
   let stats = { totalUsers: 0, totalTickets: 0, totalVolume: 0, wonTickets: 0, lostTickets: 0, pendingTickets: 0 };
   let volumeChart: { label: string; value: number }[] = [];
   let topLeagues: { league: string; count: number }[] = [];
+  let provinceStats: Awaited<ReturnType<typeof getProvinceStats>> = [];
 
   try {
     const db = getDb();
@@ -45,6 +50,7 @@ export default async function AnalyticsPage() {
       .orderBy(sql`count(*) desc`)
       .limit(5);
     topLeagues = leagues.map((l) => ({ league: l.league, count: l.count }));
+    provinceStats = await getProvinceStats();
   } catch { /* DB not ready */ }
 
   const ticketSegments = [
@@ -55,7 +61,19 @@ export default async function AnalyticsPage() {
 
   return (
     <div>
-      <PageHeader title="Analytics" description="Tendances, performance et insights de la plateforme" />
+      <PageHeader
+        title="Analytics"
+        description="Tendances, performance et insights de la plateforme"
+        action={
+          <Link
+            href="/api/export/tickets"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV tickets
+          </Link>
+        }
+      />
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Utilisateurs" value={String(stats.totalUsers)} icon="users" index={0} />
@@ -77,6 +95,16 @@ export default async function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="mt-6" glow>
+        <CardHeader>
+          <h2 className="font-semibold text-white">Carte géographique — RDC</h2>
+          <p className="text-sm text-muted">Où joue-t-on le plus ? Volume paris et recettes par province.</p>
+        </CardHeader>
+        <CardContent>
+          <RdcMapPanel stats={provinceStats} />
+        </CardContent>
+      </Card>
 
       <Card className="mt-6">
         <CardHeader><h2 className="font-semibold text-white">Top ligues</h2></CardHeader>

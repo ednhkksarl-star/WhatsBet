@@ -4,6 +4,7 @@ import { users, transactions, messages, auditLogs } from "@whatsbet/database";
 import { formatCdf } from "@whatsbet/shared";
 import { checkPaymentStatus, isPaymentSuccess } from "@/lib/simplypaye";
 import { gatewaySendMessage } from "@/lib/gateway-client";
+import { logUserNotification } from "@/lib/notifications";
 
 export async function completeDepositTransaction(
   txId: string,
@@ -44,6 +45,12 @@ export async function completeDepositTransaction(
         text: confirmation,
       });
       await db.insert(messages).values({ userId: user.id, text: confirmation, fromMe: true });
+      await logUserNotification({
+        userId: user.id,
+        type: "deposit_completed",
+        message: confirmation,
+        sent: true,
+      });
     } catch {
       /* gateway offline — balance still credited */
     }

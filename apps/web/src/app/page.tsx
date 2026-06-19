@@ -1,5 +1,6 @@
 "use client";
 
+import { AgeGate } from "@/components/age-gate";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -100,14 +101,15 @@ const FOOTER_LINKS = {
     { label: "Contact", href: "#" },
   ],
   Légal: [
-    { label: "Conditions d'utilisation", href: "#" },
-    { label: "Politique de confidentialité", href: "#" },
+    { label: "Conditions d'utilisation", href: "/terms" },
+    { label: "Politique de confidentialité", href: "/privacy" },
   ],
 };
 
 /* ─── Page ─── */
 export default function HomePage() {
   return (
+    <AgeGate>
     <div className="landing-page min-h-screen">
 
       {/* ══════════ NAVBAR ══════════ */}
@@ -367,5 +369,6 @@ export default function HomePage() {
         </div>
       </footer>
     </div>
+    </AgeGate>
   );
 }
