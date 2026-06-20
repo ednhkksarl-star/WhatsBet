@@ -20,6 +20,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { HeroVisual } from "@/components/landing/hero-visual";
+import { LandingBetikaBg } from "@/components/landing/landing-betika-bg";
 import { CtaBannerGraphic } from "@/components/landing/cta-graphic";
 import { MotionBlock, MotionItem, MotionStagger } from "@/components/landing/landing-motion";
 import { cn } from "@/lib/utils";
@@ -113,8 +114,10 @@ const FOOTER_LINKS = {
 export default function HomePage() {
   return (
     <AgeGate>
-    <div className="landing-page min-h-screen">
+    <div className="landing-page relative min-h-screen">
+      <LandingBetikaBg />
 
+      <div className="relative z-10">
       {/* ══════════ NAVBAR ══════════ */}
       <motion.header
         initial={{ opacity: 0, y: -16 }}
@@ -409,6 +412,7 @@ export default function HomePage() {
           </MotionBlock>
         </div>
       </footer>
+      </div>
     </div>
     </AgeGate>
   );
