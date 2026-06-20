@@ -23,8 +23,12 @@ export default function ConfigurationPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
   const [twoFaSetup, setTwoFaSetup] = useState<{ uri: string; secret: string; email?: string } | null>(null);
+  const [twoFaStatus, setTwoFaStatus] = useState<{ enabled: boolean; pending: boolean } | null>(null);
   const [twoFaLoading, setTwoFaLoading] = useState(false);
   const [twoFaError, setTwoFaError] = useState("");
+  const [disablePassword, setDisablePassword] = useState("");
+  const [showDisableForm, setShowDisableForm] = useState(false);
+  const [disableLoading, setDisableLoading] = useState(false);
 
   const fetchStatus = async () => {
     try {
@@ -92,7 +96,29 @@ export default function ConfigurationPage() {
     }
   };
 
+  const fetchTwoFaStatus = async () => {
+    try {
+      const res = await fetch("/api/auth/2fa/status");
+      if (res.ok) {
+        const data = await res.json();
+        setTwoFaStatus({ enabled: Boolean(data.enabled), pending: Boolean(data.pending) });
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
   const enableTwoFactor = async () => {
+    if (twoFaStatus?.enabled) return;
+    if (
+      twoFaStatus?.pending &&
+      !window.confirm(
+        "Une configuration est déjà en cours. Relancer va générer une nouvelle clé — supprimez l'ancienne entrée dans votre app avant de continuer."
+      )
+    ) {
+      return;
+    }
+
     setTwoFaLoading(true);
     setTwoFaError("");
     try {
@@ -103,10 +129,35 @@ export default function ConfigurationPage() {
         return;
       }
       setTwoFaSetup({ uri: data.uri, secret: data.secret, email: data.email });
+      setTwoFaStatus({ enabled: false, pending: true });
     } catch {
       setTwoFaError("Erreur réseau");
     } finally {
       setTwoFaLoading(false);
+    }
+  };
+
+  const disableTwoFactor = async () => {
+    setDisableLoading(true);
+    setTwoFaError("");
+    try {
+      const res = await fetch("/api/auth/2fa/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: disablePassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setTwoFaError(data.error ?? "Impossible de désactiver le 2FA");
+        return;
+      }
+      setTwoFaStatus({ enabled: false, pending: false });
+      setShowDisableForm(false);
+      setDisablePassword("");
+    } catch {
+      setTwoFaError("Erreur réseau");
+    } finally {
+      setDisableLoading(false);
     }
   };
 
@@ -123,7 +174,7 @@ export default function ConfigurationPage() {
 
   useEffect(() => {
     const initialize = async () => {
-      await Promise.all([fetchStatus(), fetchQr(), loadSettings()]);
+      await Promise.all([fetchStatus(), fetchQr(), loadSettings(), fetchTwoFaStatus()]);
       setLoading(false);
     };
     initialize();
@@ -350,21 +401,85 @@ export default function ConfigurationPage() {
             <p className="text-sm text-white/60 mb-4">
               Activez le 2FA TOTP pour sécuriser votre compte admin (Google Authenticator, Authy…).
             </p>
-            <button
-              type="button"
-              onClick={() => void enableTwoFactor()}
-              disabled={twoFaLoading}
-              className="rounded-xl border border-brand-yellow-500/30 bg-brand-yellow-500/10 px-4 py-2 text-sm font-medium text-brand-yellow-500 hover:bg-brand-yellow-500/20 disabled:opacity-50"
-            >
-              {twoFaLoading ? (
-                <span className="inline-flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Activation…
-                </span>
-              ) : (
-                "Activer 2FA"
+
+            {twoFaStatus?.enabled && (
+              <div className="mb-4 inline-flex items-center gap-2 rounded-xl border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                2FA activée sur ce compte
+              </div>
+            )}
+
+            {twoFaStatus?.pending && !twoFaStatus.enabled && (
+              <div className="mb-4 rounded-xl border border-brand-yellow-500/30 bg-brand-yellow-500/10 px-3 py-2 text-sm text-brand-yellow-500">
+                Configuration en attente — scannez le QR et confirmez avec un code, ou relancez l&apos;activation.
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-3">
+              {!twoFaStatus?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => void enableTwoFactor()}
+                  disabled={twoFaLoading}
+                  className="rounded-xl border border-brand-yellow-500/30 bg-brand-yellow-500/10 px-4 py-2 text-sm font-medium text-brand-yellow-500 hover:bg-brand-yellow-500/20 disabled:opacity-50"
+                >
+                  {twoFaLoading ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Activation…
+                    </span>
+                  ) : twoFaStatus?.pending ? (
+                    "Reprendre / régénérer le QR"
+                  ) : (
+                    "Activer 2FA"
+                  )}
+                </button>
               )}
-            </button>
+
+              {twoFaStatus?.enabled && !showDisableForm && (
+                <button
+                  type="button"
+                  onClick={() => setShowDisableForm(true)}
+                  className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-500/20"
+                >
+                  Désactiver le 2FA
+                </button>
+              )}
+            </div>
+
+            {showDisableForm && (
+              <div className="mt-4 space-y-3 rounded-xl border border-white/10 bg-brand-blue-900/30 p-4">
+                <p className="text-xs text-white/60">Confirmez avec votre mot de passe pour réinitialiser le 2FA.</p>
+                <input
+                  type="password"
+                  value={disablePassword}
+                  onChange={(e) => setDisablePassword(e.target.value)}
+                  placeholder="Mot de passe"
+                  className="w-full rounded-xl border border-brand-blue-600 bg-brand-blue-900/50 px-4 py-2.5 text-sm text-white placeholder-white/40 focus:border-brand-yellow-500 focus:outline-none"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void disableTwoFactor()}
+                    disabled={disableLoading || !disablePassword}
+                    className="rounded-xl bg-red-500/20 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-500/30 disabled:opacity-50"
+                  >
+                    {disableLoading ? "Désactivation…" : "Confirmer la désactivation"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDisableForm(false);
+                      setDisablePassword("");
+                    }}
+                    className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white/60 hover:text-white"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            )}
+
             {twoFaError && <p className="mt-3 text-xs text-red-400">{twoFaError}</p>}
           </div>
 
@@ -390,6 +505,10 @@ export default function ConfigurationPage() {
       <TwoFactorSetupModal
         open={!!twoFaSetup}
         onClose={() => setTwoFaSetup(null)}
+        onConfirmed={() => {
+          setTwoFaStatus({ enabled: true, pending: false });
+          void fetchTwoFaStatus();
+        }}
         uri={twoFaSetup?.uri ?? ""}
         secret={twoFaSetup?.secret ?? ""}
         email={twoFaSetup?.email}

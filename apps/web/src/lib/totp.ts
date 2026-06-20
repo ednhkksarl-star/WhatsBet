@@ -53,13 +53,22 @@ export function generateTotpSecret(): string {
   return base32Encode(randomBytes(20));
 }
 
-export function verifyTotp(secret: string, token: string, window = 1): boolean {
+export function verifyTotp(secret: string, token: string, window = 2): boolean {
+  const normalized = token.replace(/\D/g, "");
+  if (normalized.length !== 6) return false;
   const key = base32Decode(secret.replace(/\s/g, ""));
   const step = Math.floor(Date.now() / 1000 / 30);
   for (let i = -window; i <= window; i++) {
-    if (hotp(key, step + i) === token.replace(/\s/g, "")) return true;
+    if (hotp(key, step + i) === normalized) return true;
   }
   return false;
+}
+
+/** Code TOTP courant — utile pour tests / debug internes uniquement */
+export function getCurrentTotpCode(secret: string): string {
+  const key = base32Decode(secret.replace(/\s/g, ""));
+  const step = Math.floor(Date.now() / 1000 / 30);
+  return hotp(key, step);
 }
 
 export function getOtpAuthUri(email: string, secret: string, issuer = "WhatsBet"): string {

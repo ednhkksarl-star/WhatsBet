@@ -38,7 +38,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "2FA requis", requires2FA: true }, { status: 401 });
       }
       if (!verifyTotp(admin.twoFactorSecret, body.totpCode)) {
-        return NextResponse.json({ error: "Code 2FA invalide" }, { status: 401 });
+        return NextResponse.json(
+          {
+            error:
+              "Code 2FA invalide. Vérifiez l'heure de votre téléphone ou réinitialisez le 2FA dans Configuration.",
+          },
+          { status: 401 }
+        );
       }
     }
 
